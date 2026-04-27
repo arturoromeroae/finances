@@ -670,7 +670,7 @@ const fmtFull=d=>d.toLocaleDateString('es-MX',{day:'numeric',month:'short',year:
 // ── CÁLCULOS ───────────────────────────────────────────
 const isInternalTx=t=>t.type==='transferencia'||t.type==='pago-tc';
 const getBalance=()=>txs.filter(t=>t.date<=todayStr()&&!isInternalTx(t)).reduce((b,t)=>t.type==='ingreso'?b+t.amount:b-t.amount,cfg.balance||0);
-const getTodaySpent=()=>txs.filter(t=>t.type==='egreso'&&t.date===todayStr()).reduce((s,t)=>s+t.amount,0);
+const getTodaySpent=()=>txs.filter(t=>t.type==='egreso'&&t.date===todayStr()&&!t.recurringId).reduce((s,t)=>s+t.amount,0);
 
 // ── BANCO HELPERS ──────────────────────────────────────
 function applyBankDelta(bankId,delta){
