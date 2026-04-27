@@ -1,5 +1,5 @@
 // Bumpear la versión cada vez que cambies HTML/JS para forzar actualización en iPhone
-const CACHE = 'finanzas-v5';
+const CACHE = 'finanzas-v6';
 const PRECACHE = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', e => {

@@ -669,7 +669,7 @@ const fmtFull=d=>d.toLocaleDateString('es-MX',{day:'numeric',month:'short',year:
 
 // ── CÁLCULOS ───────────────────────────────────────────
 const isInternalTx=t=>t.type==='transferencia'||t.type==='pago-tc';
-const getBalance=()=>txs.filter(t=>t.date<=todayStr()&&!isInternalTx(t)).reduce((b,t)=>t.type==='ingreso'?b+t.amount:b-t.amount,cfg.balance||0);
+const getBalance=()=>txs.filter(t=>t.date<=todayStr()&&!isInternalTx(t)&&!(t.type==='egreso'&&t.usedCC)).reduce((b,t)=>t.type==='ingreso'?b+t.amount:b-t.amount,cfg.balance||0);
 const getTodaySpent=()=>txs.filter(t=>t.type==='egreso'&&t.date===todayStr()&&!t.recurringId).reduce((s,t)=>s+t.amount,0);
 
 // ── BANCO HELPERS ──────────────────────────────────────
@@ -1029,7 +1029,10 @@ function confirmPayRec(){
   const date=document.getElementById('pay-rec-date').value;
   if(!sourceVal){alert('Selecciona una fuente');return;}
   if(!date){alert('Selecciona una fecha');return;}
-  const[kind,bankId]=sourceVal.split(':');
+  const colonIdx=sourceVal.indexOf(':');
+  const kind=colonIdx>=0?sourceVal.slice(0,colonIdx):'bank';
+  const bankId=colonIdx>=0?sourceVal.slice(colonIdx+1):sourceVal;
+  if(!bankId){alert('Banco inválido');return;}
   const ym=date.slice(0,7);
   let tx;
   if(r.type==='ingreso'){
