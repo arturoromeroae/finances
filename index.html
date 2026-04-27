@@ -1,0 +1,1980 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Mis Finanzas">
+  <meta name="theme-color" content="#007aff">
+  <title>Mis Finanzas</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+    :root{
+      --bg:#f2f2f7;--card:#fff;--primary:#007aff;--income:#34c759;--expense:#ff3b30;
+      --text:#000;--text2:#8e8e93;--border:#e5e5ea;--safe-bottom:env(safe-area-inset-bottom,0px);
+    }
+    body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+    #app{max-width:430px;margin:0 auto;min-height:100vh;position:relative}
+    .view{display:none;flex-direction:column;min-height:calc(100vh - 83px);padding-bottom:16px}
+    .view.active{display:flex}
+    .header{background:var(--card);padding:16px 20px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+    .header h1{font-size:28px;font-weight:700;letter-spacing:-.5px}
+    .header-row{display:flex;justify-content:space-between;align-items:center}
+    .card{background:var(--card);border-radius:16px;padding:16px;margin:0 16px 12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+    .balance-card{background:var(--primary);color:#fff;text-align:center;padding:28px 20px}
+    .bal-label{font-size:14px;opacity:.85;margin-bottom:8px}
+    .bal-amount{font-size:40px;font-weight:700;letter-spacing:-1px}
+    .bal-row{display:flex;gap:12px;margin-top:20px}
+    .bal-stat{flex:1;background:rgba(255,255,255,.18);border-radius:12px;padding:10px;text-align:center}
+    .bal-stat-label{font-size:12px;opacity:.8}
+    .bal-stat-value{font-size:18px;font-weight:600;margin-top:2px}
+    .section-title{font-size:20px;font-weight:600;padding:16px 20px 8px}
+    .tx-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+    .tx-item:last-child{border-bottom:none}
+    .tx-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+    .tx-icon.income{background:#e8f9ed}.tx-icon.expense{background:#fde8e7}
+    .tx-info{flex:1;min-width:0}
+    .tx-desc{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .tx-cat{font-size:12px;color:var(--text2);margin-top:2px}
+    .tx-amount{font-size:16px;font-weight:600;flex-shrink:0}
+    .tx-amount.income{color:var(--income)}.tx-amount.expense{color:var(--expense)}
+    #tabbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(249,249,249,.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;padding-bottom:var(--safe-bottom);z-index:100}
+    .tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;background:none;border:none;cursor:pointer;color:var(--text2);font-size:10px;font-weight:500;transition:color .2s}
+    .tab-btn svg{width:24px;height:24px}
+    .tab-btn.active{color:var(--primary)}
+    /* ── FAB Agregar (iOS Liquid Glass) ── */
+    #tab-add-fab{position:fixed;left:50%;bottom:calc(74px + var(--safe-bottom));transform:translateX(-50%);width:60px;height:60px;border-radius:50%;
+      background:linear-gradient(180deg,rgba(20,140,255,.92) 0%,rgba(0,110,235,.92) 100%);
+      backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);
+      border:1px solid rgba(255,255,255,.4);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -1px 0 rgba(0,0,0,.12),0 10px 28px rgba(0,90,210,.45),0 2px 6px rgba(0,0,0,.15);
+      color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;font-family:inherit;z-index:101;
+      transition:transform .15s ease, box-shadow .2s ease}
+    #tab-add-fab:active{transform:translateX(-50%) scale(.92)}
+    #tab-add-fab svg{width:28px;height:28px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.15))}
+    .form-section{margin:12px 16px 0}
+    .form-label{font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px}
+    .form-input{width:100%;padding:14px 16px;font-size:16px;border:none;border-radius:12px;background:var(--card);color:var(--text);outline:none;font-family:inherit;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+    .form-input:focus{box-shadow:0 0 0 3px rgba(0,122,255,.2)}
+    select.form-input{appearance:none;-webkit-appearance:none}
+    .type-toggle{display:flex;background:#e5e5ea;border-radius:12px;padding:3px;margin:16px 16px 0}
+    .type-btn{flex:1;padding:10px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:all .25s;background:transparent;color:var(--text2);font-family:inherit}
+    .type-btn.act-exp{background:var(--expense);color:#fff}
+    .type-btn.act-inc{background:var(--income);color:#fff}
+    .type-btn.act-tr{background:var(--primary);color:#fff}
+    .type-btn.act-pay{background:#ff9500;color:#fff}
+    .type-btn{font-size:13px;padding:9px 2px}
+    .check-circle{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;background:none;padding:0;color:transparent;font-size:16px;font-weight:700;transition:all .2s}
+    .check-circle.checked{background:var(--income);border-color:var(--income);color:#fff}
+    .check-circle.checked-inc{background:var(--income);border-color:var(--income);color:#fff}
+    .amount-big{font-size:36px!important;font-weight:700;text-align:center;letter-spacing:-.5px}
+    .btn{display:block;width:calc(100% - 32px);margin:16px 16px 0;padding:16px;border:none;border-radius:14px;font-size:17px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .2s}
+    .btn:active{opacity:.7}
+    .btn-primary{background:var(--primary);color:#fff}
+    .btn-danger{background:var(--expense);color:#fff}
+    .btn-secondary{background:var(--card);color:var(--primary)}
+    .rec-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+    .rec-item:last-child{border-bottom:none}
+    .rec-info{flex:1;min-width:0}
+    .rec-name{font-size:15px;font-weight:500}
+    .rec-day{font-size:12px;color:var(--text2);margin-top:2px}
+    .rec-amount{font-size:16px;font-weight:600;flex-shrink:0}
+    .rec-amount.income{color:var(--income)}.rec-amount.expense{color:var(--expense)}
+    .icon-btn{width:32px;height:32px;border:none;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;background:var(--bg)}
+    .proj-card{margin:16px;padding:0;overflow:hidden}
+    .proj-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)}
+    .proj-row:last-child{border-bottom:none}
+    .proj-label{font-size:15px;font-weight:500}
+    .proj-date{font-size:12px;color:var(--text2);margin-top:2px}
+    .proj-value{font-size:17px;font-weight:700}
+    .pos{color:var(--income)}.neg{color:var(--expense)}
+    .month-nav{display:flex;align-items:center;justify-content:center;gap:16px;padding:12px 20px}
+    .month-nav-btn{background:var(--card);border:none;border-radius:8px;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+    .month-label{font-size:17px;font-weight:600;min-width:190px;text-align:center}
+    .empty-state{text-align:center;padding:48px 20px;color:var(--text2)}
+    .empty-icon{font-size:48px;margin-bottom:12px}
+    .empty-text{font-size:17px;font-weight:500;margin-bottom:6px;color:var(--text)}
+    .empty-sub{font-size:14px}
+    .scroll{overflow-y:auto;flex:1;padding-top:8px;padding-bottom:calc(150px + var(--safe-bottom))}
+    .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:flex-end;justify-content:center}
+    .sheet-overlay.open{display:flex}
+    .sheet{background:var(--card);width:100%;max-width:430px;border-radius:20px 20px 0 0;padding:20px;padding-bottom:calc(20px + var(--safe-bottom));max-height:90vh;overflow-y:auto}
+    .sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px}
+    .sheet-title{font-size:20px;font-weight:700;margin-bottom:20px}
+    .settings-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+    .settings-row:last-child{border-bottom:none}
+    .settings-label{font-size:15px}
+    .settings-input{width:150px;padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:15px;font-family:inherit;text-align:right;outline:none}
+    .settings-input:focus{border-color:var(--primary)}
+    .upcoming-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+    .upcoming-item:last-child{border-bottom:none}
+    .upcoming-name{font-size:14px;font-weight:500}
+    .upcoming-day{font-size:12px;color:var(--text2);margin-top:1px}
+    .upcoming-amount{font-size:14px;font-weight:700}
+    .sum-grid{display:flex;justify-content:space-between;align-items:center}
+    /* ── BANCOS ── */
+    .bank-card{border-radius:16px;overflow:hidden;margin:0 16px 12px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+    .bank-hdr{padding:14px 16px;display:flex;align-items:flex-start;justify-content:space-between}
+    .bank-body{background:var(--card);padding:14px 16px}
+    .cc-bar-wrap{background:#e5e5ea;border-radius:99px;height:6px;margin:4px 0 2px;overflow:hidden}
+    .cc-bar{height:100%;border-radius:99px;transition:width .4s}
+    .tip-box{background:#fffbe6;border:1px solid #f0d060;border-radius:10px;padding:10px 12px;margin-top:10px;font-size:13px;color:#6b5900;line-height:1.5}
+    .dist-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)}
+    .dist-row:last-child{border-bottom:none}
+    .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+    .tab-btn{font-size:9px}
+    .tab-btn svg{width:22px;height:22px}
+    /* ── PRESUPUESTO ── */
+    .budget-bar-wrap{background:#e5e5ea;border-radius:99px;height:8px;margin-top:10px;overflow:hidden}
+    .budget-bar{height:100%;border-radius:99px;transition:width .4s ease}
+    .budget-bar.ok{background:var(--income)}
+    .budget-bar.warn{background:#ff9500}
+    .budget-bar.over{background:var(--expense)}
+    /* ── LOCK SCREEN ── */
+    #lock-screen{position:fixed;inset:0;z-index:999;background:#1c1c1e;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-bottom:var(--safe-bottom)}
+    #lock-screen.hidden{display:none}
+    .lock-title{color:#fff;font-size:26px;font-weight:700;margin-bottom:6px}
+    .lock-subtitle{color:rgba(255,255,255,.55);font-size:15px;margin-bottom:52px;text-align:center;padding:0 32px}
+    .pin-dots{display:flex;gap:18px;margin-bottom:48px}
+    .pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.5);transition:all .15s}
+    .pin-dot.filled{background:#fff;border-color:#fff}
+    .pin-dot.error{background:var(--expense);border-color:var(--expense)}
+    .pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:288px}
+    .pin-btn{background:rgba(255,255,255,.12);border:none;border-radius:50%;width:80px;height:80px;color:#fff;font-size:28px;font-weight:400;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:background .15s;font-family:inherit}
+    .pin-btn:active{background:rgba(255,255,255,.3)}
+    .pin-btn.ghost{background:transparent}
+    .pin-btn-sub{font-size:10px;letter-spacing:1.5px;color:rgba(255,255,255,.6);margin-top:1px;font-weight:500}
+    .pin-bio-btn{margin-top:24px;background:none;border:none;color:rgba(255,255,255,.7);font-size:15px;cursor:pointer;padding:8px 16px;font-family:inherit}
+    /* ── TOGGLE ── */
+    .toggle-wrap{position:relative;width:51px;height:31px;display:inline-block;flex-shrink:0}
+    .toggle-wrap input{opacity:0;width:0;height:0;position:absolute}
+    .toggle-slider{position:absolute;inset:0;background:#ccc;border-radius:34px;transition:.3s;cursor:pointer}
+    .toggle-slider:before{position:absolute;content:'';height:27px;width:27px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+    input:checked+.toggle-slider{background:var(--primary)}
+    input:checked+.toggle-slider:before{transform:translateX(20px)}
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- INICIO -->
+  <div class="view active" id="view-home">
+    <div class="header">
+      <div class="header-row">
+        <h1>Mis Finanzas</h1>
+        <button onclick="openSettings()" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--text2)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="scroll">
+      <div id="home-balance" style="margin:16px 16px 0"></div>
+      <div id="home-budget"></div>
+      <p class="section-title">Este mes</p>
+      <div id="home-month"></div>
+      <p class="section-title">Últimos movimientos</p>
+      <div class="card" id="home-recent"></div>
+    </div>
+  </div>
+
+  <!-- MOVIMIENTOS -->
+  <div class="view" id="view-movements">
+    <div class="header"><h1>Movimientos</h1></div>
+    <div class="month-nav">
+      <button class="month-nav-btn" onclick="changeMonth(-1)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <span class="month-label" id="month-label"></span>
+      <button class="month-nav-btn" onclick="changeMonth(1)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></button>
+    </div>
+    <div class="scroll">
+      <div class="card" id="mov-summary"></div>
+      <div class="card" id="mov-list"></div>
+    </div>
+  </div>
+
+  <!-- AGREGAR -->
+  <div class="view" id="view-add">
+    <div class="header"><h1>Nueva transacción</h1></div>
+    <div class="scroll">
+      <div class="type-toggle">
+        <button class="type-btn act-exp" id="btn-exp" onclick="setType('egreso')">Egreso</button>
+        <button class="type-btn" id="btn-inc" onclick="setType('ingreso')">Ingreso</button>
+        <button class="type-btn" id="btn-tr" onclick="setType('transferencia')">Transferir</button>
+        <button class="type-btn" id="btn-pay" onclick="setType('pago-tc')">Pago TC</button>
+      </div>
+      <div class="form-section" style="margin-top:16px">
+        <div class="form-label">Monto</div>
+        <input type="number" id="add-amount" class="form-input amount-big" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+      </div>
+      <div class="form-section" id="add-desc-row">
+        <div class="form-label">Descripción</div>
+        <input type="text" id="add-desc" class="form-input" placeholder="¿En qué fue? (opcional)">
+      </div>
+      <div class="form-section" id="add-cat-row">
+        <div class="form-label">Categoría</div>
+        <select id="add-cat" class="form-input"></select>
+      </div>
+      <div class="form-section" id="add-bank-row">
+        <div class="form-label">Banco (opcional)</div>
+        <select id="add-bank" class="form-input" onchange="onAddBankChange()"></select>
+      </div>
+      <div class="form-section" id="add-cc-row" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border-radius:12px;padding:12px 16px;box-shadow:0 1px 3px rgba(0,0,0,.08)">
+          <span style="font-size:15px">Pagué con tarjeta de crédito</span>
+          <label class="toggle-wrap"><input type="checkbox" id="add-used-cc"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+      <div class="form-section" id="add-from-bank-row" style="display:none">
+        <div class="form-label">Desde (banco)</div>
+        <select id="add-from-bank" class="form-input"></select>
+      </div>
+      <div class="form-section" id="add-to-bank-row" style="display:none">
+        <div class="form-label">Hacia (banco)</div>
+        <select id="add-to-bank" class="form-input"></select>
+      </div>
+      <div class="form-section" id="add-cc-bank-row" style="display:none">
+        <div class="form-label">Tarjeta de crédito a pagar</div>
+        <select id="add-cc-bank" class="form-input"></select>
+      </div>
+      <div class="form-section">
+        <div class="form-label">Fecha</div>
+        <input type="date" id="add-date" class="form-input">
+      </div>
+      <button class="btn btn-primary" onclick="submitTx()">Guardar</button>
+    </div>
+  </div>
+
+  <!-- RECURRENTES -->
+  <div class="view" id="view-recurring">
+    <div class="header"><h1>Recurrentes</h1></div>
+    <div class="scroll">
+      <p style="padding:12px 20px 0;font-size:14px;color:var(--text2)">Configura tus ingresos y egresos fijos. Se usan para calcular la proyección futura.</p>
+      <p class="section-title">Ingresos fijos</p>
+      <div class="card" id="rec-income-list"></div>
+      <p class="section-title">Egresos fijos</p>
+      <div class="card" id="rec-expense-list"></div>
+      <button class="btn btn-primary" onclick="openRecSheet('ingreso')">+ Agregar ingreso fijo</button>
+      <button class="btn btn-secondary" style="margin-top:8px" onclick="openRecSheet('egreso')">+ Agregar egreso fijo</button>
+    </div>
+  </div>
+
+  <!-- PROYECCIÓN -->
+  <div class="view" id="view-projection">
+    <div class="header"><h1>Proyección</h1></div>
+    <div class="scroll">
+      <p style="padding:12px 20px 8px;font-size:14px;color:var(--text2)">Estimado basado en tu balance actual y movimientos recurrentes configurados.</p>
+      <div class="card proj-card" id="proj-balances"></div>
+      <p class="section-title">Próximos 30 días</p>
+      <div class="card" id="proj-upcoming"></div>
+    </div>
+  </div>
+
+  <!-- BANCOS -->
+  <div class="view" id="view-banks">
+    <div class="header">
+      <div class="header-row">
+        <h1>Bancos</h1>
+        <button onclick="openBankSheet(null)" style="background:none;border:none;color:var(--primary);font-size:28px;cursor:pointer;line-height:1;padding:0">+</button>
+      </div>
+    </div>
+    <div class="scroll">
+      <div class="card" id="banks-total" style="margin-top:16px"></div>
+      <p class="section-title">Distribución de ingreso</p>
+      <div class="card">
+        <div class="form-label">Si recibes</div>
+        <input type="number" id="dist-amount" class="form-input" placeholder="0.00" oninput="renderDistCalc()" style="margin-top:6px;font-size:20px;font-weight:700;text-align:center" inputmode="decimal">
+        <div id="dist-result" style="margin-top:12px"></div>
+      </div>
+      <p class="section-title">Mis bancos</p>
+      <div id="bank-cards-list"></div>
+    </div>
+  </div>
+
+  <!-- TAB BAR -->
+  <nav id="tabbar">
+    <button class="tab-btn active" id="tab-home" onclick="showView('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Inicio
+    </button>
+    <button class="tab-btn" id="tab-movements" onclick="showView('movements')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Movimientos
+    </button>
+    <button class="tab-btn" id="tab-recurring" onclick="showView('recurring')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+      Recurrentes
+    </button>
+    <button class="tab-btn" id="tab-projection" onclick="showView('projection')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+      Proyección
+    </button>
+    <button class="tab-btn" id="tab-banks" onclick="showView('banks')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>
+      Bancos
+    </button>
+  </nav>
+
+  <button id="tab-add-fab" onclick="showView('add')" aria-label="Agregar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+
+  <!-- SHEET: CONFIGURACIÓN -->
+  <div class="sheet-overlay" id="sheet-settings" onclick="closeSheet('settings',event)">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Configuración</div>
+      <div class="settings-row">
+        <span class="settings-label">Balance inicial</span>
+        <input type="number" class="settings-input" id="cfg-balance" placeholder="0.00" step="0.01" inputmode="decimal">
+      </div>
+      <div class="settings-row">
+        <span class="settings-label">Moneda</span>
+        <select class="settings-input" id="cfg-currency">
+          <option value="MXN">MXN 🇲🇽</option>
+          <option value="USD">USD 🇺🇸</option>
+          <option value="EUR">EUR 🇪🇺</option>
+          <option value="COP">COP 🇨🇴</option>
+          <option value="ARS">ARS 🇦🇷</option>
+          <option value="CLP">CLP 🇨🇱</option>
+          <option value="PEN">PEN 🇵🇪</option>
+          <option value="GTQ">GTQ 🇬🇹</option>
+        </select>
+      </div>
+      <div class="settings-row">
+        <span class="settings-label">Presupuesto base (diario)</span>
+        <input type="number" class="settings-input" id="cfg-budget" placeholder="0.00" step="0.01" inputmode="decimal">
+      </div>
+      <div class="settings-row">
+        <span class="settings-label">Presupuesto por día</span>
+        <button onclick="closeSheet('settings');setTimeout(openWeekBudget,200)" style="background:none;border:none;color:var(--primary);font-size:15px;cursor:pointer;font-family:inherit">Configurar</button>
+      </div>
+      <div class="settings-row">
+        <span class="settings-label">Datos</span>
+        <div style="display:flex;gap:8px">
+          <button onclick="exportToExcel()" style="background:none;border:none;color:var(--primary);font-size:15px;cursor:pointer;font-family:inherit;padding:0">Exportar</button>
+          <span style="color:var(--text2)">·</span>
+          <button onclick="document.getElementById('import-file').click()" style="background:none;border:none;color:var(--primary);font-size:15px;cursor:pointer;font-family:inherit;padding:0">Importar</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <span class="settings-label">Recuperar de otra IP</span>
+        <button onclick="openRecoverDialog()" style="background:none;border:none;color:var(--primary);font-size:15px;cursor:pointer;font-family:inherit;padding:0">Iniciar</button>
+      </div>
+      <input type="file" id="import-file" accept=".xlsx,.xls" style="display:none" onchange="importFromExcel(this.files[0]);this.value=''">
+      <div class="settings-row">
+        <span class="settings-label">Bloqueo con PIN</span>
+        <label class="toggle-wrap">
+          <input type="checkbox" id="cfg-lock" onchange="toggleLock(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div id="change-pin-row" style="display:none" class="settings-row">
+        <span class="settings-label">Cambiar PIN</span>
+        <button onclick="openPinSetup('change')" style="background:none;border:none;color:var(--primary);font-size:15px;cursor:pointer;font-family:inherit">Cambiar</button>
+      </div>
+      <button class="btn btn-primary" style="margin:20px 0 0" onclick="saveSettings()">Guardar</button>
+    </div>
+  </div>
+
+  <!-- SHEET: RECURRENTE -->
+  <div class="sheet-overlay" id="sheet-rec" onclick="closeSheet('rec',event)">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title" id="rec-title">Nuevo recurrente</div>
+      <input type="hidden" id="rec-type-val">
+      <input type="hidden" id="rec-edit-id">
+      <div style="margin-bottom:12px">
+        <div class="form-label">Descripción</div>
+        <input type="text" id="rec-desc" class="form-input" placeholder="Ej: Sueldo, Renta, Netflix…">
+      </div>
+      <div style="margin-bottom:12px">
+        <div class="form-label">Monto</div>
+        <input type="number" id="rec-amount" class="form-input" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+      </div>
+      <div style="margin-bottom:12px">
+        <div class="form-label">Categoría</div>
+        <select id="rec-cat" class="form-input"></select>
+      </div>
+      <div style="margin-bottom:20px">
+        <div class="form-label">Día del mes</div>
+        <select id="rec-day" class="form-input"></select>
+      </div>
+      <button class="btn btn-primary" style="margin:0" onclick="saveRec()">Guardar</button>
+    </div>
+  </div>
+
+  <!-- PANTALLA DE BLOQUEO -->
+  <div id="lock-screen" class="hidden">
+    <div class="lock-title">💰 Mis Finanzas</div>
+    <div class="lock-subtitle" id="lock-msg">Ingresa tu PIN para continuar</div>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+      <div class="pin-dot" id="d4"></div>
+      <div class="pin-dot" id="d5"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-btn" onclick="pinTap(1)">1<span class="pin-btn-sub"></span></button>
+      <button class="pin-btn" onclick="pinTap(2)">2<span class="pin-btn-sub">ABC</span></button>
+      <button class="pin-btn" onclick="pinTap(3)">3<span class="pin-btn-sub">DEF</span></button>
+      <button class="pin-btn" onclick="pinTap(4)">4<span class="pin-btn-sub">GHI</span></button>
+      <button class="pin-btn" onclick="pinTap(5)">5<span class="pin-btn-sub">JKL</span></button>
+      <button class="pin-btn" onclick="pinTap(6)">6<span class="pin-btn-sub">MNO</span></button>
+      <button class="pin-btn" onclick="pinTap(7)">7<span class="pin-btn-sub">PQRS</span></button>
+      <button class="pin-btn" onclick="pinTap(8)">8<span class="pin-btn-sub">TUV</span></button>
+      <button class="pin-btn" onclick="pinTap(9)">9<span class="pin-btn-sub">WXYZ</span></button>
+      <button class="pin-btn ghost" id="bio-pad-btn" onclick="tryBiometric()">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5c0-2.76 2.24-5 5-5s5 2.24 5 5z"/><path d="M12 3C7.03 3 3 7.03 3 12"/><path d="M21 12c0 4.97-4.03 9-9 9"/><path d="M12 6.5C9.52 6.5 7.5 8.52 7.5 11"/><path d="M16.5 11c0 2.49-2.01 4.5-4.5 4.5"/></svg>
+      </button>
+      <button class="pin-btn" onclick="pinTap(0)">0</button>
+      <button class="pin-btn ghost" onclick="pinDelete()">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+      </button>
+    </div>
+    <button class="pin-bio-btn" id="bio-text-btn" onclick="tryBiometric()">Usar Face ID / Huella</button>
+  </div>
+
+  <!-- SHEET: CONFIGURAR PIN -->
+  <div class="sheet-overlay" id="sheet-pin-setup" onclick="closeSheet('pin-setup',event)">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title" id="pin-setup-title">Crear PIN</div>
+      <p id="pin-setup-msg" style="color:var(--text2);font-size:14px;margin-bottom:24px">Elige un PIN de 6 dígitos para proteger la app.</p>
+      <div style="display:flex;justify-content:center;gap:14px;margin-bottom:24px" id="setup-dots">
+        <div class="pin-dot" style="border-color:#ccc" id="sd0"></div>
+        <div class="pin-dot" style="border-color:#ccc" id="sd1"></div>
+        <div class="pin-dot" style="border-color:#ccc" id="sd2"></div>
+        <div class="pin-dot" style="border-color:#ccc" id="sd3"></div>
+        <div class="pin-dot" style="border-color:#ccc" id="sd4"></div>
+        <div class="pin-dot" style="border-color:#ccc" id="sd5"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:280px;margin:0 auto">
+        <button class="pin-btn" style="background:#f2f2f7;color:#000;width:100%;height:68px;font-size:24px" onclick="setupTap(1)">1</button>
+        <button class="pin-btn" style="background:#f2f2f7;color:#000;width:100%;height:68px;font-size:24px" onclick="setupTap(2)">2</button>
+        <button class="pin-btn" style="background:#f2f2f7;color:#000;width:100%;height:68px;font-size:24px" onclick="setupTap(3)">3</button>
+        <button class="pin-btn" style="background:#f2f2f7;color:#000;width:100%;height:68px;font-size:24px" onclick="setupTap(4)">4</button>
+        <button class="pin-btn" style="background:#f2f2f7;color:#000;width:100%;height:68px;font-size:24px" onclick="setupTap(5)">5</button>
+        <button class="pin-btn" style="background:#f2f2f7;color:#000;width:100%;height:68px;font-size:24px" onclick="setupTap(6)">6</button>
+        <button class="pin-btn" style="background:#f2f2f7;color:#000;width:100%;height:68px;font-size:24px" onclick="setupTap(7)">7</button>
+        <button class="pin-btn" style="background:#f2f2f7;color:#000;width:100%;height:68px;font-size:24px" onclick="setupTap(8)">8</button>
+        <button class="pin-btn" style="background:#f2f2f7;color:#000;width:100%;height:68px;font-size:24px" onclick="setupTap(9)">9</button>
+        <button class="pin-btn ghost" style="width:100%;height:68px" onclick=""></button>
+        <button class="pin-btn" style="background:#f2f2f7;color:#000;width:100%;height:68px;font-size:24px" onclick="setupTap(0)">0</button>
+        <button class="pin-btn ghost" style="width:100%;height:68px;color:#333" onclick="setupDelete()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHEET: BANCO -->
+  <div class="sheet-overlay" id="sheet-bank" onclick="closeSheet('bank',event)">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title" id="bank-sheet-title">Agregar banco</div>
+      <input type="hidden" id="bank-edit-id">
+      <div style="margin-bottom:12px">
+        <div class="form-label">Banco</div>
+        <select id="bank-name" class="form-input" onchange="onBankNameChange()">
+          <option value="BCP">BCP</option>
+          <option value="BBVA">BBVA</option>
+          <option value="Interbank">Interbank</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+      <div id="bank-custom-name-row" style="display:none;margin-bottom:12px">
+        <div class="form-label">Nombre del banco</div>
+        <input type="text" id="bank-custom-name" class="form-input" placeholder="Nombre del banco">
+      </div>
+      <div style="margin-bottom:12px">
+        <div class="form-label">Saldo actual</div>
+        <input type="number" id="bank-balance" class="form-input" placeholder="0.00" step="0.01" inputmode="decimal">
+      </div>
+      <div style="margin-bottom:12px">
+        <div class="form-label">% de cada ingreso a depositar aquí</div>
+        <input type="number" id="bank-pct" class="form-input" placeholder="0" min="0" max="100" inputmode="numeric">
+      </div>
+      <div style="margin-bottom:12px">
+        <div class="form-label">Propósito</div>
+        <input type="text" id="bank-purpose" class="form-input" placeholder="Ej: Gastos del mes, ahorro…">
+      </div>
+      <div style="margin-bottom:12px">
+        <div class="form-label">Tarjeta de crédito</div>
+        <select id="bank-cc-goal" class="form-input" onchange="onCCGoalChange()">
+          <option value="none">No tengo / No aplica</option>
+          <option value="obtener">Quiero obtener una tarjeta aquí</option>
+          <option value="usar">Tengo tarjeta de crédito</option>
+          <option value="aumentar">Tengo TC y quiero aumentar el límite</option>
+        </select>
+      </div>
+      <div id="bank-cc-fields" style="display:none">
+        <div style="margin-bottom:12px">
+          <div class="form-label">Límite de la tarjeta</div>
+          <input type="number" id="bank-cc-limit" class="form-input" placeholder="0.00" step="0.01" inputmode="decimal">
+        </div>
+        <div style="margin-bottom:20px">
+          <div class="form-label">Monto usado este mes</div>
+          <input type="number" id="bank-cc-used" class="form-input" placeholder="0.00" step="0.01" inputmode="decimal">
+        </div>
+      </div>
+      <button class="btn btn-primary" style="margin:0 0 8px" onclick="saveBankSheet()">Guardar</button>
+      <button class="btn btn-danger" style="margin:0;display:none" id="bank-delete-btn" onclick="deleteBank()">Eliminar banco</button>
+    </div>
+  </div>
+
+  <!-- SHEET: PRESUPUESTO POR DÍA DE SEMANA -->
+  <div class="sheet-overlay" id="sheet-week-budget" onclick="closeSheet('week-budget',event)">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Presupuesto por día</div>
+      <p style="color:var(--text2);font-size:14px;margin-bottom:20px">Deja vacío los días que usan el presupuesto base.</p>
+      <div id="week-budget-rows"></div>
+      <button class="btn btn-primary" style="margin:20px 0 0" onclick="saveWeekBudget()">Guardar</button>
+    </div>
+  </div>
+
+  <!-- SHEET: AJUSTAR PRESUPUESTO DEL DÍA -->
+  <div class="sheet-overlay" id="sheet-budget-override" onclick="closeSheet('budget-override',event)">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Ajustar presupuesto de hoy</div>
+      <p style="color:var(--text2);font-size:14px;margin-bottom:20px">Solo afecta el día de hoy. El presupuesto diario base no cambia.</p>
+      <div style="margin-bottom:20px">
+        <div class="form-label">Presupuesto para hoy</div>
+        <input type="number" id="override-amount" class="form-input amount-big" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+      </div>
+      <button class="btn btn-primary" style="margin:0 0 8px" onclick="saveBudgetOverride()">Guardar</button>
+      <button class="btn btn-secondary" style="margin:0" id="btn-clear-override" onclick="clearBudgetOverride()">Usar presupuesto base</button>
+    </div>
+  </div>
+
+  <!-- SHEET: EDITAR MOVIMIENTO -->
+  <div class="sheet-overlay" id="sheet-edit-tx" onclick="closeSheet('edit-tx',event)">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Editar movimiento</div>
+      <input type="hidden" id="edit-tx-id">
+      <div class="type-toggle" style="margin:0 0 16px">
+        <button class="type-btn act-exp" id="edit-btn-exp" onclick="setEditType('egreso')">Egreso</button>
+        <button class="type-btn" id="edit-btn-inc" onclick="setEditType('ingreso')">Ingreso</button>
+        <button class="type-btn" id="edit-btn-tr" onclick="setEditType('transferencia')">Transferir</button>
+        <button class="type-btn" id="edit-btn-pay" onclick="setEditType('pago-tc')">Pago TC</button>
+      </div>
+      <div style="margin-bottom:12px">
+        <div class="form-label">Monto</div>
+        <input type="number" id="edit-amount" class="form-input amount-big" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+      </div>
+      <div style="margin-bottom:12px" id="edit-desc-row">
+        <div class="form-label">Descripción</div>
+        <input type="text" id="edit-desc" class="form-input" placeholder="¿En qué fue?">
+      </div>
+      <div style="margin-bottom:12px" id="edit-cat-row">
+        <div class="form-label">Categoría</div>
+        <select id="edit-cat" class="form-input"></select>
+      </div>
+      <div style="margin-bottom:12px" id="edit-bank-row">
+        <div class="form-label">Banco (opcional)</div>
+        <select id="edit-bank" class="form-input" onchange="onEditBankChange()"></select>
+      </div>
+      <div style="margin-bottom:12px;display:none" id="edit-cc-row">
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg);border-radius:12px;padding:12px 16px">
+          <span style="font-size:15px">Pagué con tarjeta de crédito</span>
+          <label class="toggle-wrap"><input type="checkbox" id="edit-used-cc"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+      <div style="margin-bottom:12px;display:none" id="edit-from-bank-row">
+        <div class="form-label">Desde (banco)</div>
+        <select id="edit-from-bank" class="form-input"></select>
+      </div>
+      <div style="margin-bottom:12px;display:none" id="edit-to-bank-row">
+        <div class="form-label">Hacia (banco)</div>
+        <select id="edit-to-bank" class="form-input"></select>
+      </div>
+      <div style="margin-bottom:12px;display:none" id="edit-cc-bank-row">
+        <div class="form-label">Tarjeta de crédito a pagar</div>
+        <select id="edit-cc-bank" class="form-input"></select>
+      </div>
+      <div style="margin-bottom:20px">
+        <div class="form-label">Fecha</div>
+        <input type="date" id="edit-date" class="form-input">
+      </div>
+      <button class="btn btn-primary" style="margin:0" onclick="saveEditTx()">Guardar cambios</button>
+    </div>
+  </div>
+
+  <!-- SHEET: MARCAR RECURRENTE COMO PAGADO -->
+  <div class="sheet-overlay" id="sheet-pay-rec" onclick="closeSheet('pay-rec',event)">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title" id="pay-rec-title">Marcar como pagado</div>
+      <input type="hidden" id="pay-rec-id">
+      <p style="color:var(--text2);font-size:14px;margin-bottom:16px" id="pay-rec-info"></p>
+      <div style="margin-bottom:12px">
+        <div class="form-label">Pagar con</div>
+        <select id="pay-rec-source" class="form-input"></select>
+      </div>
+      <div style="margin-bottom:20px">
+        <div class="form-label">Fecha</div>
+        <input type="date" id="pay-rec-date" class="form-input">
+      </div>
+      <button class="btn btn-primary" style="margin:0 0 8px" onclick="confirmPayRec()">Confirmar</button>
+      <button class="btn btn-secondary" style="margin:0" onclick="closeSheet('pay-rec')">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- SHEET: ELIMINAR -->
+  <div class="sheet-overlay" id="sheet-delete" onclick="closeSheet('delete',event)">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Eliminar movimiento</div>
+      <p style="color:var(--text2);margin-bottom:24px">¿Estás seguro? Esta acción no se puede deshacer.</p>
+      <button class="btn btn-danger" style="margin:0 0 8px" onclick="confirmDelete()">Eliminar</button>
+      <button class="btn btn-secondary" style="margin:0" onclick="closeSheet('delete')">Cancelar</button>
+    </div>
+  </div>
+
+</div>
+<script>
+// ── DATOS ──────────────────────────────────────────────
+const K={TX:'mf_tx',REC:'mf_rec',CFG:'mf_cfg'};
+const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch{return d}};
+const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+
+let txs=load(K.TX,[]);
+let recs=load(K.REC,[]);
+let cfg=load(K.CFG,{balance:0,currency:'MXN'});
+
+// ── CATEGORÍAS ─────────────────────────────────────────
+const INC_CATS=['Sueldo','Freelance','Venta','Inversión','Bono','Regalo','Otro'];
+const EXP_CATS=['Alimentación','Transporte','Servicios','Entretenimiento','Ropa','Salud','Educación','Renta','Suscripciones','Ahorro','Otro'];
+const ICONS={
+  Sueldo:'💼',Freelance:'💻',Venta:'🏷️','Inversión':'📈',Bono:'🎯',Regalo:'🎁',
+  'Alimentación':'🍽️',Transporte:'🚗',Servicios:'⚡',Entretenimiento:'🎬',Ropa:'👕',
+  Salud:'💊','Educación':'📚',Renta:'🏠',Suscripciones:'📱',Ahorro:'🏦',Otro:'💰'
+};
+
+// ── UTILS ──────────────────────────────────────────────
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const fmt=n=>new Intl.NumberFormat('es-MX',{style:'currency',currency:cfg.currency||'MXN'}).format(n);
+const todayStr=()=>new Date().toISOString().split('T')[0];
+const currentYM=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`};
+const fmtMonth=ym=>{const[y,m]=ym.split('-');return new Date(+y,+m-1,1).toLocaleDateString('es-MX',{month:'long',year:'numeric'})};
+const fmtDate=s=>{const d=new Date(s+'T00:00:00');return d.toLocaleDateString('es-MX',{day:'numeric',month:'short'})};
+const fmtFull=d=>d.toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'});
+
+// ── CÁLCULOS ───────────────────────────────────────────
+const isInternalTx=t=>t.type==='transferencia'||t.type==='pago-tc';
+const getBalance=()=>txs.filter(t=>t.date<=todayStr()&&!isInternalTx(t)).reduce((b,t)=>t.type==='ingreso'?b+t.amount:b-t.amount,cfg.balance||0);
+const getTodaySpent=()=>txs.filter(t=>t.type==='egreso'&&t.date===todayStr()).reduce((s,t)=>s+t.amount,0);
+
+// ── BANCO HELPERS ──────────────────────────────────────
+function applyBankDelta(bankId,delta){
+  if(!bankId||!cfg.banks)return;
+  const b=cfg.banks.find(x=>x.id===bankId);
+  if(b)b.balance=(b.balance||0)+delta;
+}
+function applyBankCCDelta(bankId,delta){
+  if(!bankId||!cfg.banks)return;
+  const b=cfg.banks.find(x=>x.id===bankId);
+  if(b)b.ccUsed=Math.max((b.ccUsed||0)+delta,0);
+}
+function bankHasCC(b){return b&&(b.ccGoal==='usar'||b.ccGoal==='aumentar')}
+function applyTxToBanks(t,sign){
+  if(t.type==='ingreso')applyBankDelta(t.bankId,sign*t.amount);
+  else if(t.type==='egreso'){
+    if(t.usedCC)applyBankCCDelta(t.bankId,sign*t.amount);
+    else applyBankDelta(t.bankId,-sign*t.amount);
+  }
+  else if(t.type==='transferencia'){
+    applyBankDelta(t.fromBankId,-sign*t.amount);
+    applyBankDelta(t.toBankId,sign*t.amount);
+  }
+  else if(t.type==='pago-tc'){
+    applyBankDelta(t.bankId,-sign*t.amount);
+    applyBankCCDelta(t.toBankId,-sign*t.amount);
+  }
+}
+function bankOptionsHTML(selectedId,placeholder){
+  const banks=cfg.banks||[];
+  const opts=[`<option value="">${placeholder||'Sin banco'}</option>`]
+    .concat(banks.map(b=>`<option value="${b.id}"${b.id===selectedId?' selected':''}>${b.name}</option>`));
+  return opts.join('');
+}
+function ccBankOptionsHTML(selectedId){
+  const banks=(cfg.banks||[]).filter(bankHasCC);
+  if(!banks.length)return `<option value="">No hay tarjetas configuradas</option>`;
+  return [`<option value="">Selecciona tarjeta</option>`]
+    .concat(banks.map(b=>`<option value="${b.id}"${b.id===selectedId?' selected':''}>${b.name} (TC)</option>`)).join('');
+}
+function paySourceOptionsHTML(){
+  const banks=cfg.banks||[];
+  const opts=[];
+  banks.forEach(b=>{
+    opts.push(`<option value="bank:${b.id}">${b.name} (saldo)</option>`);
+    if(bankHasCC(b))opts.push(`<option value="cc:${b.id}">${b.name} (tarjeta de crédito)</option>`);
+  });
+  return opts.join('')||`<option value="">No hay bancos configurados</option>`;
+}
+const DAYS=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+function getEffectiveBudget(){
+  const t=todayStr();
+  if(cfg.budgetOverrides&&cfg.budgetOverrides[t]!=null)return{amount:cfg.budgetOverrides[t],label:'ajustado'};
+  const day=new Date().getDay();
+  if(cfg.weekBudgets&&cfg.weekBudgets[day]!=null)return{amount:cfg.weekBudgets[day],label:DAYS[day]};
+  return{amount:cfg.dailyBudget||0,label:null};
+}
+
+const getMonthTotals=ym=>{
+  let inc=0,exp=0;
+  txs.filter(t=>t.date.startsWith(ym)&&t.date<=todayStr()&&t.type!=='transferencia').forEach(t=>t.type==='ingreso'?inc+=t.amount:exp+=t.amount);
+  return{inc,exp,net:inc-exp};
+};
+const getProjection=(horizon=12)=>{
+  const base=new Date();base.setHours(0,0,0,0);
+  let bal=getBalance();
+  const active=recs.filter(r=>r.active!==false);
+  const futureTxs=txs.filter(t=>t.date>todayStr()&&!isInternalTx(t)).sort((a,b)=>a.date.localeCompare(b.date));
+  const pts=[];
+  for(let d=1;d<=400;d++){
+    const fd=new Date(base);fd.setDate(base.getDate()+d);
+    const fdStr=fd.toISOString().split('T')[0];
+    const dom=fd.getDate();
+    futureTxs.filter(t=>t.date===fdStr).forEach(t=>{
+      if(t.type==='ingreso')bal+=t.amount;
+      else if(t.type==='egreso')bal-=t.amount;
+    });
+    active.forEach(r=>{
+      const dim=new Date(fd.getFullYear(),fd.getMonth()+1,0).getDate();
+      if(dom===(r.dayOfMonth===32?dim:Math.min(r.dayOfMonth,dim)))
+        bal=r.type==='ingreso'?bal+r.amount:bal-r.amount;
+    });
+    const next=new Date(fd);next.setDate(fd.getDate()+1);
+    if(next.getMonth()!==fd.getMonth()){
+      pts.push({date:new Date(fd),bal,ym:`${fd.getFullYear()}-${String(fd.getMonth()+1).padStart(2,'0')}`});
+      if(pts.length>=horizon)break;
+    }
+  }
+  return pts;
+};
+const getUpcoming=(days=30)=>{
+  const base=new Date();base.setHours(0,0,0,0);
+  const active=recs.filter(r=>r.active!==false);
+  const list=[];
+  for(let d=1;d<=days;d++){
+    const fd=new Date(base);fd.setDate(base.getDate()+d);
+    const dom=fd.getDate();
+    active.forEach(r=>{
+      const dim=new Date(fd.getFullYear(),fd.getMonth()+1,0).getDate();
+      if(dom===(r.dayOfMonth===32?dim:Math.min(r.dayOfMonth,dim)))list.push({...r,date:new Date(fd),daysAway:d});
+    });
+  }
+  return list.sort((a,b)=>a.daysAway-b.daysAway);
+};
+
+// ── NAVEGACIÓN ─────────────────────────────────────────
+let currentView='home';
+let filterMonth=currentYM();
+
+function showView(v){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  const tab=document.getElementById('tab-'+v);
+  if(tab)tab.classList.add('active');
+  currentView=v;
+  renderView(v);
+}
+function renderView(v){
+  if(v==='home')renderHome();
+  else if(v==='movements')renderMovements();
+  else if(v==='add')renderAdd();
+  else if(v==='recurring')renderRecurring();
+  else if(v==='projection')renderProjection();
+  else if(v==='banks'){initBanks();renderBanks();}
+}
+
+// ── INICIO ─────────────────────────────────────────────
+function renderHome(){
+  const bal=getBalance();
+  const{inc,exp}=getMonthTotals(currentYM());
+  document.getElementById('home-balance').innerHTML=`
+    <div class="card balance-card">
+      <div class="bal-label">Balance actual</div>
+      <div class="bal-amount">${fmt(bal)}</div>
+      <div class="bal-row">
+        <div class="bal-stat"><div class="bal-stat-label">↑ Ingresos este mes</div><div class="bal-stat-value">${fmt(inc)}</div></div>
+        <div class="bal-stat"><div class="bal-stat-label">↓ Egresos este mes</div><div class="bal-stat-value">${fmt(exp)}</div></div>
+      </div>
+    </div>`;
+  const budget=cfg.dailyBudget||0;
+  const spent=getTodaySpent();
+  const budgetEl=document.getElementById('home-budget');
+  const{amount:effectiveBudget,label:budgetLabel}=getEffectiveBudget();
+  if(budget>0){
+    const remaining=effectiveBudget-spent;
+    const pct=effectiveBudget>0?Math.min(spent/effectiveBudget*100,100):100;
+    const barCls=pct<70?'ok':pct<100?'warn':'over';
+    const remColor=remaining>=0?'var(--income)':'var(--expense)';
+    const tag=budgetLabel?`<span style="font-size:11px;background:#e5e5ea;border-radius:6px;padding:2px 6px;color:var(--text2);margin-left:6px">${budgetLabel}</span>`:'';
+    budgetEl.innerHTML=`
+      <div class="card" style="margin-top:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span style="font-size:14px;font-weight:600">Presupuesto de hoy${tag}</span>
+          <button onclick="openBudgetOverride()" style="background:none;border:none;color:var(--primary);font-size:13px;cursor:pointer;font-family:inherit;padding:0">Ajustar</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:13px;color:var(--text2)">Gastado: <b style="color:var(--text)">${fmt(spent)}</b></span>
+          <span style="font-size:13px">Disponible: <b style="color:${remColor}">${fmt(remaining)}</b></span>
+        </div>
+        <div class="budget-bar-wrap"><div class="budget-bar ${barCls}" style="width:${pct}%"></div></div>
+        ${pct>=100?`<div style="font-size:12px;color:var(--expense);margin-top:6px;text-align:center">⚠️ Superaste el presupuesto de hoy</div>`:''}
+      </div>`;
+  } else {
+    budgetEl.innerHTML='';
+  }
+  document.getElementById('home-month').innerHTML=`
+    <div class="card" style="display:flex;gap:12px;text-align:center">
+      <div style="flex:1"><div style="font-size:12px;color:var(--text2)">Ingresos</div><div style="font-size:20px;font-weight:700;color:var(--income);margin-top:4px">${fmt(inc)}</div></div>
+      <div style="width:1px;background:var(--border)"></div>
+      <div style="flex:1"><div style="font-size:12px;color:var(--text2)">Egresos</div><div style="font-size:20px;font-weight:700;color:var(--expense);margin-top:4px">${fmt(exp)}</div></div>
+    </div>`;
+  const recent=[...txs].sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt.localeCompare(a.createdAt)).slice(0,5);
+  const el=document.getElementById('home-recent');
+  el.innerHTML=recent.length?recent.map(t=>txHTML(t)).join('')
+    :`<div class="empty-state"><div class="empty-icon">💸</div><div class="empty-text">Sin movimientos aún</div><div class="empty-sub">Toca + para registrar tu primer movimiento</div></div>`;
+}
+
+// ── MOVIMIENTOS ────────────────────────────────────────
+function changeMonth(d){
+  const[y,m]=filterMonth.split('-').map(Number);
+  const nd=new Date(y,m-1+d,1);
+  filterMonth=`${nd.getFullYear()}-${String(nd.getMonth()+1).padStart(2,'0')}`;
+  renderMovements();
+}
+function renderMovements(){
+  document.getElementById('month-label').textContent=fmtMonth(filterMonth);
+  const{inc,exp,net}=getMonthTotals(filterMonth);
+  document.getElementById('mov-summary').innerHTML=`
+    <div class="sum-grid">
+      <div><div style="font-size:12px;color:var(--text2)">Ingresos</div><div style="font-weight:700;color:var(--income)">${fmt(inc)}</div></div>
+      <div style="text-align:center"><div style="font-size:12px;color:var(--text2)">Balance</div><div style="font-weight:700;color:${net>=0?'var(--income)':'var(--expense)'}">${fmt(net)}</div></div>
+      <div style="text-align:right"><div style="font-size:12px;color:var(--text2)">Egresos</div><div style="font-weight:700;color:var(--expense)">${fmt(exp)}</div></div>
+    </div>`;
+  const list=txs.filter(t=>t.date.startsWith(filterMonth)).sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt.localeCompare(a.createdAt));
+  const el=document.getElementById('mov-list');
+  el.innerHTML=list.length?list.map(t=>txHTML(t)).join('')
+    :`<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Sin movimientos</div><div class="empty-sub">No hay registros en ${fmtMonth(filterMonth)}</div></div>`;
+}
+
+// ── AGREGAR ────────────────────────────────────────────
+let addType='egreso';
+function renderAdd(){
+  initBanks();
+  document.getElementById('add-amount').value='';
+  document.getElementById('add-desc').value='';
+  document.getElementById('add-date').value=todayStr();
+  updateCats('add-cat',addType);
+  refreshAddBankSelectors();
+  syncTypeBtns();
+  applyAddTypeUI();
+}
+function refreshAddBankSelectors(){
+  document.getElementById('add-bank').innerHTML=bankOptionsHTML('','Sin banco');
+  document.getElementById('add-from-bank').innerHTML=bankOptionsHTML('','Selecciona banco');
+  document.getElementById('add-to-bank').innerHTML=bankOptionsHTML('','Selecciona banco');
+  document.getElementById('add-cc-bank').innerHTML=ccBankOptionsHTML('');
+  document.getElementById('add-used-cc').checked=false;
+  onAddBankChange();
+}
+function setType(t){addType=t;syncTypeBtns();applyAddTypeUI();if(t==='ingreso'||t==='egreso')updateCats('add-cat',t)}
+function syncTypeBtns(){
+  document.getElementById('btn-exp').className='type-btn'+(addType==='egreso'?' act-exp':'');
+  document.getElementById('btn-inc').className='type-btn'+(addType==='ingreso'?' act-inc':'');
+  document.getElementById('btn-tr').className='type-btn'+(addType==='transferencia'?' act-tr':'');
+  document.getElementById('btn-pay').className='type-btn'+(addType==='pago-tc'?' act-pay':'');
+}
+function applyAddTypeUI(){
+  const isTr=addType==='transferencia';
+  const isPay=addType==='pago-tc';
+  const isReg=!isTr&&!isPay;
+  document.getElementById('add-cat-row').style.display=isReg?'block':'none';
+  document.getElementById('add-bank-row').style.display=isReg?'block':'none';
+  document.getElementById('add-from-bank-row').style.display=(isTr||isPay)?'block':'none';
+  document.getElementById('add-to-bank-row').style.display=isTr?'block':'none';
+  document.getElementById('add-cc-bank-row').style.display=isPay?'block':'none';
+  document.getElementById('add-desc').placeholder=isTr?'Motivo (opcional)':isPay?'Nota (opcional)':'¿En qué fue? (opcional)';
+  onAddBankChange();
+}
+function onAddBankChange(){
+  const isReg=addType==='ingreso'||addType==='egreso';
+  const bankId=document.getElementById('add-bank').value;
+  const b=(cfg.banks||[]).find(x=>x.id===bankId);
+  const show=isReg&&addType==='egreso'&&bankHasCC(b);
+  document.getElementById('add-cc-row').style.display=show?'block':'none';
+  if(!show)document.getElementById('add-used-cc').checked=false;
+}
+function updateCats(id,type){
+  const cats=type==='ingreso'?INC_CATS:EXP_CATS;
+  document.getElementById(id).innerHTML=cats.map(c=>`<option>${c}</option>`).join('');
+}
+function submitTx(){
+  const amount=parseFloat(document.getElementById('add-amount').value);
+  const date=document.getElementById('add-date').value;
+  if(!amount||amount<=0){alert('Ingresa un monto válido');return}
+  if(!date){alert('Selecciona una fecha');return}
+  let tx;
+  if(addType==='transferencia'){
+    const fromBankId=document.getElementById('add-from-bank').value;
+    const toBankId=document.getElementById('add-to-bank').value;
+    if(!fromBankId||!toBankId){alert('Selecciona los bancos de origen y destino');return}
+    if(fromBankId===toBankId){alert('Los bancos deben ser distintos');return}
+    const fromB=cfg.banks.find(b=>b.id===fromBankId);
+    const toB=cfg.banks.find(b=>b.id===toBankId);
+    const desc=document.getElementById('add-desc').value.trim()||`Transferencia ${fromB.name} → ${toB.name}`;
+    tx={id:uid(),type:'transferencia',amount,fromBankId,toBankId,description:desc,date,createdAt:new Date().toISOString()};
+  } else if(addType==='pago-tc'){
+    const fromBankId=document.getElementById('add-from-bank').value;
+    const ccBankId=document.getElementById('add-cc-bank').value;
+    if(!fromBankId||!ccBankId){alert('Selecciona el banco de origen y la tarjeta');return}
+    const fromB=cfg.banks.find(b=>b.id===fromBankId);
+    const ccB=cfg.banks.find(b=>b.id===ccBankId);
+    const desc=document.getElementById('add-desc').value.trim()||`Pago TC ${ccB.name} desde ${fromB.name}`;
+    tx={id:uid(),type:'pago-tc',amount,bankId:fromBankId,toBankId:ccBankId,description:desc,date,createdAt:new Date().toISOString()};
+  } else {
+    const bankId=document.getElementById('add-bank').value||null;
+    const usedCC=addType==='egreso'&&!!bankId&&document.getElementById('add-used-cc').checked;
+    tx={id:uid(),type:addType,amount,category:document.getElementById('add-cat').value,description:document.getElementById('add-desc').value.trim()||document.getElementById('add-cat').value,date,bankId,usedCC,createdAt:new Date().toISOString()};
+  }
+  txs.push(tx);
+  applyTxToBanks(tx,1);
+  save(K.TX,txs);
+  save(K.CFG,cfg);
+  document.getElementById('add-amount').value='';
+  document.getElementById('add-desc').value='';
+  showView('home');
+}
+
+// ── RECURRENTES ────────────────────────────────────────
+function isRecPaidThisMonth(r){
+  const ym=currentYM();
+  return !!(r.paidMonths&&r.paidMonths[ym]);
+}
+function renderRecurring(){
+  const render=(type,id)=>{
+    const items=recs.filter(r=>r.type===type);
+    document.getElementById(id).innerHTML=items.length
+      ?items.map(r=>{
+        const paid=isRecPaidThisMonth(r);
+        const checkCls=type==='ingreso'?'check-circle checked-inc':'check-circle checked';
+        const labelAction=type==='ingreso'?'Marcar como cobrado':'Marcar como pagado';
+        return `<div class="rec-item">
+        <button class="${paid?checkCls:'check-circle'}" title="${paid?'Quitar marca':labelAction}" onclick="toggleRecPaid('${r.id}')">${paid?'✓':''}</button>
+        <div style="font-size:24px">${ICONS[r.category]||'💰'}</div>
+        <div class="rec-info"><div class="rec-name">${r.description}</div><div class="rec-day">${r.dayOfMonth===32?'Último día del mes':'Día '+r.dayOfMonth} · ${r.category}</div></div>
+        <div class="rec-amount ${type}">${fmt(r.amount)}</div>
+        <button class="icon-btn" onclick="editRec('${r.id}')">✏️</button>
+        <button class="icon-btn" onclick="deleteRec('${r.id}')">🗑️</button>
+      </div>`}).join('')
+      :`<div style="padding:12px 0;color:var(--text2);font-size:14px;text-align:center">Sin configurar</div>`;
+  };
+  render('ingreso','rec-income-list');
+  render('egreso','rec-expense-list');
+}
+
+// ── MARCAR RECURRENTE COMO PAGADO ──────────────────────
+function toggleRecPaid(id){
+  const r=recs.find(x=>x.id===id);if(!r)return;
+  const ym=currentYM();
+  if(r.paidMonths&&r.paidMonths[ym]){
+    // Desmarcar: revierte tx asociada
+    const txId=r.paidMonths[ym];
+    const idx=txs.findIndex(x=>x.id===txId);
+    if(idx>=0){applyTxToBanks(txs[idx],-1);txs.splice(idx,1);}
+    delete r.paidMonths[ym];
+    save(K.TX,txs);save(K.REC,recs);save(K.CFG,cfg);
+    renderRecurring();
+    return;
+  }
+  initBanks();
+  if(!cfg.banks||!cfg.banks.length){
+    alert('Configura al menos un banco antes de marcar pagos');
+    return;
+  }
+  document.getElementById('pay-rec-id').value=id;
+  document.getElementById('pay-rec-title').textContent=r.type==='ingreso'?'Marcar como cobrado':'Marcar como pagado';
+  document.getElementById('pay-rec-info').textContent=`${r.description} · ${fmt(r.amount)}`;
+  const sourceSel=document.getElementById('pay-rec-source');
+  if(r.type==='ingreso'){
+    sourceSel.innerHTML=(cfg.banks||[]).map(b=>`<option value="bank:${b.id}">${b.name} (saldo)</option>`).join('');
+  } else {
+    sourceSel.innerHTML=paySourceOptionsHTML();
+  }
+  // Sugerir día del recurrente como fecha
+  const today=new Date();
+  const dim=new Date(today.getFullYear(),today.getMonth()+1,0).getDate();
+  const dom=r.dayOfMonth===32?dim:Math.min(r.dayOfMonth,dim);
+  const suggested=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(dom).padStart(2,'0')}`;
+  document.getElementById('pay-rec-date').value=suggested<=todayStr()?suggested:todayStr();
+  document.getElementById('sheet-pay-rec').classList.add('open');
+}
+function confirmPayRec(){
+  const id=document.getElementById('pay-rec-id').value;
+  const r=recs.find(x=>x.id===id);if(!r)return;
+  const sourceVal=document.getElementById('pay-rec-source').value;
+  const date=document.getElementById('pay-rec-date').value;
+  if(!sourceVal){alert('Selecciona una fuente');return;}
+  if(!date){alert('Selecciona una fecha');return;}
+  const[kind,bankId]=sourceVal.split(':');
+  const ym=date.slice(0,7);
+  let tx;
+  if(r.type==='ingreso'){
+    tx={id:uid(),type:'ingreso',amount:r.amount,category:r.category,description:r.description,date,bankId,recurringId:r.id,createdAt:new Date().toISOString()};
+  } else {
+    tx={id:uid(),type:'egreso',amount:r.amount,category:r.category,description:r.description,date,bankId,usedCC:kind==='cc',recurringId:r.id,createdAt:new Date().toISOString()};
+  }
+  txs.push(tx);
+  applyTxToBanks(tx,1);
+  if(!r.paidMonths)r.paidMonths={};
+  r.paidMonths[ym]=tx.id;
+  save(K.TX,txs);save(K.REC,recs);save(K.CFG,cfg);
+  closeSheet('pay-rec');
+  renderRecurring();
+}
+function openRecSheet(type){
+  document.getElementById('rec-title').textContent=type==='ingreso'?'Nuevo ingreso fijo':'Nuevo egreso fijo';
+  document.getElementById('rec-type-val').value=type;
+  document.getElementById('rec-edit-id').value='';
+  document.getElementById('rec-desc').value='';
+  document.getElementById('rec-amount').value='';
+  updateCats('rec-cat',type);
+  const ds=document.getElementById('rec-day');
+  ds.innerHTML=Array.from({length:31},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')+'<option value="32">Último día del mes</option>';
+  document.getElementById('sheet-rec').classList.add('open');
+}
+function editRec(id){
+  const r=recs.find(x=>x.id===id);if(!r)return;
+  document.getElementById('rec-title').textContent='Editar recurrente';
+  document.getElementById('rec-type-val').value=r.type;
+  document.getElementById('rec-edit-id').value=id;
+  document.getElementById('rec-desc').value=r.description;
+  document.getElementById('rec-amount').value=r.amount;
+  updateCats('rec-cat',r.type);
+  document.getElementById('rec-cat').value=r.category;
+  const ds=document.getElementById('rec-day');
+  ds.innerHTML=Array.from({length:31},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')+'<option value="32">Último día del mes</option>';
+  ds.value=r.dayOfMonth;
+  document.getElementById('sheet-rec').classList.add('open');
+}
+function saveRec(){
+  const desc=document.getElementById('rec-desc').value.trim();
+  const amount=parseFloat(document.getElementById('rec-amount').value);
+  if(!desc){alert('Ingresa una descripción');return}
+  if(!amount||amount<=0){alert('Ingresa un monto válido');return}
+  const editId=document.getElementById('rec-edit-id').value;
+  const item={description:desc,amount,category:document.getElementById('rec-cat').value,dayOfMonth:parseInt(document.getElementById('rec-day').value),type:document.getElementById('rec-type-val').value,active:true};
+  if(editId){const i=recs.findIndex(r=>r.id===editId);if(i>=0)recs[i]={...recs[i],...item}}
+  else recs.push({...item,id:uid()});
+  save(K.REC,recs);
+  closeSheet('rec');
+  renderRecurring();
+}
+function deleteRec(id){
+  if(!confirm('¿Eliminar este recurrente?'))return;
+  recs=recs.filter(r=>r.id!==id);
+  save(K.REC,recs);
+  renderRecurring();
+}
+
+// ── PROYECCIÓN ─────────────────────────────────────────
+function renderProjection(){
+  const pts=getProjection(12);
+  const cur=getBalance();
+  const capMonth=ym=>{const s=fmtMonth(ym);return s.charAt(0).toUpperCase()+s.slice(1)};
+  const rows=[{label:'Ahora',date:new Date(),bal:cur},...pts.map(p=>({label:capMonth(p.ym),date:p.date,bal:p.bal}))];
+  document.getElementById('proj-balances').innerHTML=rows.map(p=>`
+    <div class="proj-row">
+      <div><div class="proj-label">${p.label}</div><div class="proj-date">${fmtFull(p.date)}</div></div>
+      <div class="proj-value ${p.bal>=0?'pos':'neg'}">${fmt(p.bal)}</div>
+    </div>`).join('');
+  const upcoming=getUpcoming(30);
+  document.getElementById('proj-upcoming').innerHTML=upcoming.length
+    ?upcoming.slice(0,12).map(u=>`
+      <div class="upcoming-item">
+        <div><div class="upcoming-name">${u.description}</div><div class="upcoming-day">${fmtFull(u.date)} · en ${u.daysAway} día${u.daysAway>1?'s':''}</div></div>
+        <div class="upcoming-amount" style="color:${u.type==='ingreso'?'var(--income)':'var(--expense)'}">${u.type==='ingreso'?'+':'-'}${fmt(u.amount)}</div>
+      </div>`).join('')
+    :`<div style="padding:16px;text-align:center;color:var(--text2);font-size:14px">Configura tus recurrentes para ver los próximos movimientos</div>`;
+}
+
+// ── TX HTML ────────────────────────────────────────────
+// ── EDITAR TRANSACCIÓN ─────────────────────────────────
+let editTxType='egreso';
+function openEditTx(id){
+  const t=txs.find(x=>x.id===id);if(!t)return;
+  initBanks();
+  editTxType=t.type;
+  document.getElementById('edit-tx-id').value=id;
+  document.getElementById('edit-amount').value=t.amount;
+  document.getElementById('edit-desc').value=t.description;
+  document.getElementById('edit-date').value=t.date;
+  if(t.type==='ingreso'||t.type==='egreso'){
+    updateCats('edit-cat',t.type);
+    document.getElementById('edit-cat').value=t.category;
+  }
+  document.getElementById('edit-bank').innerHTML=bankOptionsHTML(t.bankId||'','Sin banco');
+  document.getElementById('edit-from-bank').innerHTML=bankOptionsHTML(t.type==='pago-tc'?(t.bankId||''):(t.fromBankId||''),'Selecciona banco');
+  document.getElementById('edit-to-bank').innerHTML=bankOptionsHTML(t.toBankId||'','Selecciona banco');
+  document.getElementById('edit-cc-bank').innerHTML=ccBankOptionsHTML(t.type==='pago-tc'?(t.toBankId||''):'');
+  document.getElementById('edit-used-cc').checked=!!t.usedCC;
+  syncEditTypeBtns();
+  applyEditTypeUI();
+  document.getElementById('sheet-edit-tx').classList.add('open');
+}
+function setEditType(type){
+  editTxType=type;
+  if(type==='ingreso'||type==='egreso')updateCats('edit-cat',type);
+  syncEditTypeBtns();
+  applyEditTypeUI();
+}
+function syncEditTypeBtns(){
+  document.getElementById('edit-btn-exp').className='type-btn'+(editTxType==='egreso'?' act-exp':'');
+  document.getElementById('edit-btn-inc').className='type-btn'+(editTxType==='ingreso'?' act-inc':'');
+  document.getElementById('edit-btn-tr').className='type-btn'+(editTxType==='transferencia'?' act-tr':'');
+  document.getElementById('edit-btn-pay').className='type-btn'+(editTxType==='pago-tc'?' act-pay':'');
+}
+function applyEditTypeUI(){
+  const isTr=editTxType==='transferencia';
+  const isPay=editTxType==='pago-tc';
+  const isReg=!isTr&&!isPay;
+  document.getElementById('edit-cat-row').style.display=isReg?'block':'none';
+  document.getElementById('edit-bank-row').style.display=isReg?'block':'none';
+  document.getElementById('edit-from-bank-row').style.display=(isTr||isPay)?'block':'none';
+  document.getElementById('edit-to-bank-row').style.display=isTr?'block':'none';
+  document.getElementById('edit-cc-bank-row').style.display=isPay?'block':'none';
+  onEditBankChange();
+}
+function onEditBankChange(){
+  const bankId=document.getElementById('edit-bank').value;
+  const b=(cfg.banks||[]).find(x=>x.id===bankId);
+  const show=editTxType==='egreso'&&bankHasCC(b);
+  document.getElementById('edit-cc-row').style.display=show?'block':'none';
+  if(!show)document.getElementById('edit-used-cc').checked=false;
+}
+function saveEditTx(){
+  const id=document.getElementById('edit-tx-id').value;
+  const amount=parseFloat(document.getElementById('edit-amount').value);
+  const date=document.getElementById('edit-date').value;
+  if(!amount||amount<=0){alert('Ingresa un monto válido');return;}
+  if(!date){alert('Selecciona una fecha');return;}
+  const idx=txs.findIndex(x=>x.id===id);
+  if(idx<0)return;
+  let updated;
+  if(editTxType==='transferencia'){
+    const fromBankId=document.getElementById('edit-from-bank').value;
+    const toBankId=document.getElementById('edit-to-bank').value;
+    if(!fromBankId||!toBankId){alert('Selecciona los bancos de origen y destino');return;}
+    if(fromBankId===toBankId){alert('Los bancos deben ser distintos');return;}
+    const fromB=cfg.banks.find(b=>b.id===fromBankId);
+    const toB=cfg.banks.find(b=>b.id===toBankId);
+    const desc=document.getElementById('edit-desc').value.trim()||`Transferencia ${fromB.name} → ${toB.name}`;
+    updated={...txs[idx],type:'transferencia',amount,date,description:desc,fromBankId,toBankId,bankId:undefined,category:undefined,usedCC:false};
+  } else if(editTxType==='pago-tc'){
+    const fromBankId=document.getElementById('edit-from-bank').value;
+    const ccBankId=document.getElementById('edit-cc-bank').value;
+    if(!fromBankId||!ccBankId){alert('Selecciona el banco de origen y la tarjeta');return;}
+    const fromB=cfg.banks.find(b=>b.id===fromBankId);
+    const ccB=cfg.banks.find(b=>b.id===ccBankId);
+    const desc=document.getElementById('edit-desc').value.trim()||`Pago TC ${ccB.name} desde ${fromB.name}`;
+    updated={...txs[idx],type:'pago-tc',amount,date,description:desc,bankId:fromBankId,toBankId:ccBankId,fromBankId:undefined,category:undefined,usedCC:false};
+  } else {
+    const bankId=document.getElementById('edit-bank').value||null;
+    const usedCC=editTxType==='egreso'&&!!bankId&&document.getElementById('edit-used-cc').checked;
+    updated={...txs[idx],type:editTxType,amount,description:document.getElementById('edit-desc').value.trim()||document.getElementById('edit-cat').value,category:document.getElementById('edit-cat').value,date,bankId,usedCC,fromBankId:undefined,toBankId:undefined};
+  }
+  applyTxToBanks(txs[idx],-1);
+  applyTxToBanks(updated,1);
+  txs[idx]=updated;
+  save(K.TX,txs);
+  save(K.CFG,cfg);
+  closeSheet('edit-tx');
+  renderView(currentView);
+}
+
+let pendingDelete=null;
+function bankNameById(id){
+  const b=(cfg.banks||[]).find(x=>x.id===id);
+  return b?b.name:'?';
+}
+function txHTML(t){
+  if(t.type==='transferencia'){
+    return `<div class="tx-item">
+      <div class="tx-icon" style="background:#e5edff;color:var(--primary)">↔️</div>
+      <div class="tx-info"><div class="tx-desc">${t.description}</div><div class="tx-cat">${bankNameById(t.fromBankId)} → ${bankNameById(t.toBankId)} · ${fmtDate(t.date)}</div></div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div class="tx-amount" style="color:var(--primary)">${fmt(t.amount)}</div>
+        <button class="icon-btn" onclick="openEditTx('${t.id}')">✏️</button>
+        <button class="icon-btn" onclick="openDelete('${t.id}')">🗑️</button>
+      </div>
+    </div>`;
+  }
+  if(t.type==='pago-tc'){
+    return `<div class="tx-item">
+      <div class="tx-icon" style="background:#fff0db;color:#ff9500">💳</div>
+      <div class="tx-info"><div class="tx-desc">${t.description}</div><div class="tx-cat">Pago TC · ${bankNameById(t.bankId)} → ${bankNameById(t.toBankId)} · ${fmtDate(t.date)}</div></div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div class="tx-amount" style="color:#ff9500">${fmt(t.amount)}</div>
+        <button class="icon-btn" onclick="openEditTx('${t.id}')">✏️</button>
+        <button class="icon-btn" onclick="openDelete('${t.id}')">🗑️</button>
+      </div>
+    </div>`;
+  }
+  const cls=t.type==='ingreso'?'income':'expense';
+  const sign=t.type==='ingreso'?'+':'-';
+  const bankTag=t.bankId?` · ${bankNameById(t.bankId)}${t.usedCC?' (TC)':''}`:'';
+  return `<div class="tx-item">
+    <div class="tx-icon ${cls}">${ICONS[t.category]||'💰'}</div>
+    <div class="tx-info"><div class="tx-desc">${t.description}</div><div class="tx-cat">${t.category} · ${fmtDate(t.date)}${bankTag}</div></div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <div class="tx-amount ${cls}">${sign}${fmt(t.amount)}</div>
+      <button class="icon-btn" onclick="openEditTx('${t.id}')">✏️</button>
+      <button class="icon-btn" onclick="openDelete('${t.id}')">🗑️</button>
+    </div>
+  </div>`;
+}
+function openDelete(id){pendingDelete=id;document.getElementById('sheet-delete').classList.add('open')}
+function confirmDelete(){
+  if(!pendingDelete)return;
+  const t=txs.find(x=>x.id===pendingDelete);
+  if(t){
+    applyTxToBanks(t,-1);
+    if(t.recurringId){
+      const r=recs.find(x=>x.id===t.recurringId);
+      if(r&&r.paidMonths){
+        Object.keys(r.paidMonths).forEach(k=>{if(r.paidMonths[k]===t.id)delete r.paidMonths[k];});
+        save(K.REC,recs);
+      }
+    }
+  }
+  txs=txs.filter(t=>t.id!==pendingDelete);
+  save(K.TX,txs);
+  save(K.CFG,cfg);
+  closeSheet('delete');
+  renderView(currentView);
+}
+
+// ── CONFIGURACIÓN ──────────────────────────────────────
+function openSettings(){
+  document.getElementById('cfg-balance').value=cfg.balance||0;
+  document.getElementById('cfg-currency').value=cfg.currency||'MXN';
+  document.getElementById('sheet-settings').classList.add('open');
+}
+function saveSettings(){
+  cfg.balance=parseFloat(document.getElementById('cfg-balance').value)||0;
+  cfg.currency=document.getElementById('cfg-currency').value;
+  cfg.dailyBudget=parseFloat(document.getElementById('cfg-budget').value)||0;
+  save(K.CFG,cfg);
+  closeSheet('settings');
+  renderView(currentView);
+}
+
+// ── SHEETS ─────────────────────────────────────────────
+function closeSheet(name,e){
+  const el=document.getElementById('sheet-'+name);
+  if(!e||e.target===el){el.classList.remove('open');pendingDelete=null}
+}
+
+// ── BANCOS ─────────────────────────────────────────────
+const BANK_COLORS={BCP:'#003398',BBVA:'#004481',Interbank:'#00AC5B',Otro:'#636366'};
+
+function initBanks(){
+  if(!cfg.banks||cfg.banks.length===0){
+    cfg.banks=[
+      {id:uid(),name:'BCP',balance:0,color:'#003398',distPct:33,ccGoal:'obtener',ccLimit:0,ccUsed:0,purpose:'Ahorro y obtener tarjeta de crédito'},
+      {id:uid(),name:'BBVA',balance:0,color:'#004481',distPct:33,ccGoal:'aumentar',ccLimit:700,ccUsed:0,purpose:'Tarjeta de crédito'},
+      {id:uid(),name:'Interbank',balance:0,color:'#00AC5B',distPct:34,ccGoal:'none',ccLimit:0,ccUsed:0,purpose:'Gastos semanales y servicios'}
+    ];
+    save(K.CFG,cfg);
+  }
+}
+
+function renderBanks(){
+  initBanks();
+  const banks=cfg.banks;
+  const total=banks.reduce((s,b)=>s+(b.balance||0),0);
+  const totalPct=banks.reduce((s,b)=>s+(b.distPct||0),0);
+  const pctOk=totalPct===100;
+  document.getElementById('banks-total').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:13px;color:var(--text2)">Total en todos los bancos</div>
+        <div style="font-size:32px;font-weight:700;margin-top:2px">${fmt(total)}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:22px;font-weight:700;color:${pctOk?'var(--income)':'var(--expense)'}">${totalPct}%</div>
+        <div style="font-size:12px;color:var(--text2)">${pctOk?'distribución completa':'sin asignar: '+(100-totalPct)+'%'}</div>
+      </div>
+    </div>`;
+  document.getElementById('bank-cards-list').innerHTML=banks.map(b=>bankCardHTML(b)).join('');
+  renderDistCalc();
+}
+
+function bankCardHTML(b){
+  const hasCC=b.ccGoal==='usar'||b.ccGoal==='aumentar';
+  const ccSection=hasCC?`
+    <div style="margin:10px 0 4px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+        <span style="color:var(--text2)">Tarjeta de crédito</span>
+        <span style="font-weight:600">${fmt(b.ccUsed||0)} <span style="color:var(--text2);font-weight:400">de</span> ${fmt(b.ccLimit||0)}</span>
+      </div>
+      <div class="cc-bar-wrap"><div class="cc-bar" style="width:${b.ccLimit?Math.min((b.ccUsed||0)/(b.ccLimit||1)*100,100):0}%;background:${b.color}"></div></div>
+      <div style="font-size:12px;color:var(--text2);margin-top:3px">Disponible: <b style="color:var(--income)">${fmt(Math.max((b.ccLimit||0)-(b.ccUsed||0),0))}</b></div>
+    </div>`:''  ;
+  const tip=getCreditTip(b);
+  const tipBox=tip?`<div class="tip-box">💡 ${tip}</div>`:'';
+  return`<div class="bank-card">
+    <div class="bank-hdr" style="background:${b.color}">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:#fff">${b.name}</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:2px">${b.purpose||''}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:22px;font-weight:700;color:#fff">${fmt(b.balance||0)}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px">${b.distPct||0}% de cada ingreso</div>
+      </div>
+    </div>
+    <div class="bank-body">
+      ${ccSection}
+      ${tipBox}
+      <button onclick="openBankSheet('${b.id}')" style="width:100%;margin-top:10px;padding:9px;border-radius:10px;border:1px solid var(--border);background:var(--bg);font-size:14px;cursor:pointer;font-family:inherit">✏️ Editar</button>
+    </div>
+  </div>`;
+}
+
+function getCreditTip(b){
+  if(b.ccGoal==='obtener')return`Para obtener tu tarjeta en ${b.name}, mantén saldo constante por 3+ meses y domicilia tus pagos de servicios en esta cuenta.`;
+  if(b.ccGoal==='aumentar')return`Para aumentar tu límite en ${b.name}, usa tu tarjeta cada mes y págala completa antes del vencimiento durante al menos 6 meses seguidos.`;
+  return null;
+}
+
+function renderDistCalc(){
+  const amount=parseFloat(document.getElementById('dist-amount')?.value)||0;
+  const banks=cfg.banks||[];
+  if(!amount){document.getElementById('dist-result').innerHTML='<div style="color:var(--text2);font-size:14px;text-align:center;padding:8px 0">Escribe un monto para ver cuánto va a cada banco</div>';return;}
+  const totalPct=banks.reduce((s,b)=>s+(b.distPct||0),0);
+  const remaining=amount-banks.reduce((s,b)=>s+amount*(b.distPct||0)/100,0);
+  document.getElementById('dist-result').innerHTML=banks.map(b=>`
+    <div class="dist-row">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="dot" style="background:${b.color}"></div>
+        <span style="font-size:15px;font-weight:500">${b.name}</span>
+        <span style="font-size:12px;color:var(--text2)">${b.distPct||0}%</span>
+      </div>
+      <span style="font-size:17px;font-weight:700">${fmt(amount*(b.distPct||0)/100)}</span>
+    </div>`).join('')+(totalPct<100?`<div class="dist-row"><div style="display:flex;align-items:center;gap:8px"><div class="dot" style="background:var(--text2)"></div><span style="font-size:15px;color:var(--text2)">Sin asignar</span></div><span style="font-size:17px;font-weight:700;color:var(--text2)">${fmt(remaining)}</span></div>`:'');
+}
+
+// ── BANK SHEET ──────────────────────────────────────────
+function onBankNameChange(){
+  const v=document.getElementById('bank-name').value;
+  document.getElementById('bank-custom-name-row').style.display=v==='Otro'?'block':'none';
+}
+function onCCGoalChange(){
+  const v=document.getElementById('bank-cc-goal').value;
+  document.getElementById('bank-cc-fields').style.display=(v==='usar'||v==='aumentar')?'block':'none';
+}
+function openBankSheet(id){
+  const isEdit=!!id;
+  document.getElementById('bank-sheet-title').textContent=isEdit?'Editar banco':'Agregar banco';
+  document.getElementById('bank-delete-btn').style.display=isEdit?'block':'none';
+  document.getElementById('bank-edit-id').value=id||'';
+  if(isEdit){
+    const b=cfg.banks.find(x=>x.id===id);if(!b)return;
+    const nameOpts=['BCP','BBVA','Interbank'];
+    const knownName=nameOpts.includes(b.name)?b.name:'Otro';
+    document.getElementById('bank-name').value=knownName;
+    document.getElementById('bank-custom-name-row').style.display=knownName==='Otro'?'block':'none';
+    document.getElementById('bank-custom-name').value=knownName==='Otro'?b.name:'';
+    document.getElementById('bank-balance').value=b.balance||'';
+    document.getElementById('bank-pct').value=b.distPct||'';
+    document.getElementById('bank-purpose').value=b.purpose||'';
+    document.getElementById('bank-cc-goal').value=b.ccGoal||'none';
+    document.getElementById('bank-cc-limit').value=b.ccLimit||'';
+    document.getElementById('bank-cc-used').value=b.ccUsed||'';
+    document.getElementById('bank-cc-fields').style.display=(b.ccGoal==='usar'||b.ccGoal==='aumentar')?'block':'none';
+  } else {
+    document.getElementById('bank-name').value='BCP';
+    document.getElementById('bank-custom-name-row').style.display='none';
+    document.getElementById('bank-custom-name').value='';
+    document.getElementById('bank-balance').value='';
+    document.getElementById('bank-pct').value='';
+    document.getElementById('bank-purpose').value='';
+    document.getElementById('bank-cc-goal').value='none';
+    document.getElementById('bank-cc-limit').value='';
+    document.getElementById('bank-cc-used').value='';
+    document.getElementById('bank-cc-fields').style.display='none';
+  }
+  document.getElementById('sheet-bank').classList.add('open');
+}
+function saveBankSheet(){
+  const editId=document.getElementById('bank-edit-id').value;
+  const nameVal=document.getElementById('bank-name').value;
+  const name=nameVal==='Otro'?document.getElementById('bank-custom-name').value.trim():nameVal;
+  if(!name){alert('Ingresa el nombre del banco');return;}
+  const ccGoal=document.getElementById('bank-cc-goal').value;
+  const bank={
+    id:editId||uid(),
+    name,
+    color:BANK_COLORS[nameVal]||BANK_COLORS.Otro,
+    balance:parseFloat(document.getElementById('bank-balance').value)||0,
+    distPct:parseFloat(document.getElementById('bank-pct').value)||0,
+    purpose:document.getElementById('bank-purpose').value.trim(),
+    ccGoal,
+    ccLimit:parseFloat(document.getElementById('bank-cc-limit').value)||0,
+    ccUsed:parseFloat(document.getElementById('bank-cc-used').value)||0
+  };
+  if(!cfg.banks)cfg.banks=[];
+  if(editId){const i=cfg.banks.findIndex(b=>b.id===editId);if(i>=0)cfg.banks[i]=bank;}
+  else cfg.banks.push(bank);
+  save(K.CFG,cfg);
+  closeSheet('bank');
+  renderBanks();
+}
+function deleteBank(){
+  const id=document.getElementById('bank-edit-id').value;
+  if(!confirm('¿Eliminar este banco?'))return;
+  cfg.banks=cfg.banks.filter(b=>b.id!==id);
+  save(K.CFG,cfg);
+  closeSheet('bank');
+  renderBanks();
+}
+
+// ── PRESUPUESTO POR DÍA DE SEMANA ─────────────────────
+function openWeekBudget(){
+  const wb=cfg.weekBudgets||{};
+  // 1=Lun … 6=Sáb, 0=Dom — mostramos Lun primero
+  const order=[1,2,3,4,5,6,0];
+  document.getElementById('week-budget-rows').innerHTML=order.map(d=>`
+    <div class="settings-row">
+      <span class="settings-label">${DAYS[d]}</span>
+      <input type="number" class="settings-input" id="wd-${d}"
+        placeholder="${fmt(cfg.dailyBudget||0)}"
+        value="${wb[d]!=null?wb[d]:''}"
+        step="0.01" inputmode="decimal" min="0">
+    </div>`).join('');
+  document.getElementById('sheet-week-budget').classList.add('open');
+}
+function saveWeekBudget(){
+  if(!cfg.weekBudgets)cfg.weekBudgets={};
+  [0,1,2,3,4,5,6].forEach(d=>{
+    const v=parseFloat(document.getElementById('wd-'+d)?.value);
+    if(v>0)cfg.weekBudgets[d]=v;
+    else delete cfg.weekBudgets[d];
+  });
+  save(K.CFG,cfg);
+  closeSheet('week-budget');
+  renderHome();
+}
+
+// ── PRESUPUESTO OVERRIDE ───────────────────────────────
+function openBudgetOverride(){
+  const override=cfg.budgetOverrides&&cfg.budgetOverrides[todayStr()];
+  const budget=cfg.dailyBudget||0;
+  document.getElementById('override-amount').value=override!=null?override:budget;
+  const clearBtn=document.getElementById('btn-clear-override');
+  clearBtn.style.display=override!=null?'block':'none';
+  document.getElementById('sheet-budget-override').classList.add('open');
+}
+function saveBudgetOverride(){
+  const val=parseFloat(document.getElementById('override-amount').value);
+  if(!val||val<=0){alert('Ingresa un monto válido');return;}
+  if(!cfg.budgetOverrides)cfg.budgetOverrides={};
+  cfg.budgetOverrides[todayStr()]=val;
+  // Limpiar overrides de más de 60 días
+  const cutoff=new Date();cutoff.setDate(cutoff.getDate()-60);
+  Object.keys(cfg.budgetOverrides).forEach(d=>{if(new Date(d)<cutoff)delete cfg.budgetOverrides[d];});
+  save(K.CFG,cfg);
+  closeSheet('budget-override');
+  renderHome();
+}
+function clearBudgetOverride(){
+  if(cfg.budgetOverrides)delete cfg.budgetOverrides[todayStr()];
+  save(K.CFG,cfg);
+  closeSheet('budget-override');
+  renderHome();
+}
+
+// ── SEGURIDAD / BLOQUEO ────────────────────────────────
+let pinBuffer='';
+let setupBuffer='';
+let setupStep='first'; // 'first' | 'confirm'
+let setupFirst='';
+let bioCredId=null;
+let hiddenAt=null;
+
+async function sha256(str){
+  if(crypto&&crypto.subtle){
+    const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str+'mf$alt!'));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+  // Fallback para contextos HTTP (sin crypto.subtle)
+  let h1=0x6d6f6e65,h2=0x79326170;
+  const s=str+'mf$alt!';
+  for(let i=0;i<s.length;i++){
+    h1=Math.imul(h1^s.charCodeAt(i),0x9e3779b9);
+    h2=Math.imul(h2^s.charCodeAt(i),0x85ebca6b);
+  }
+  return[(h1>>>0),(h2>>>0),(h1^h2>>>0),(h2^h1>>>0)].map(n=>n.toString(16).padStart(8,'0')).join('');
+}
+
+// ── Lock screen ────────────────────────────────────────
+function checkLock(){
+  if(cfg.pin){
+    pinBuffer='';
+    updatePinDots();
+    document.getElementById('lock-screen').classList.remove('hidden');
+    if(cfg.bioCredId) setTimeout(tryBiometric,400);
+  }
+}
+
+function unlock(){
+  document.getElementById('lock-screen').classList.add('hidden');
+  pinBuffer='';
+}
+
+function updatePinDots(){
+  for(let i=0;i<6;i++){
+    const d=document.getElementById('d'+i);
+    d.classList.toggle('filled',i<pinBuffer.length);
+    d.classList.remove('error');
+  }
+}
+
+function pinTap(n){
+  if(pinBuffer.length>=6)return;
+  pinBuffer+=n;
+  updatePinDots();
+  if(pinBuffer.length===6)verifyPin();
+}
+
+function pinDelete(){
+  pinBuffer=pinBuffer.slice(0,-1);
+  updatePinDots();
+}
+
+async function verifyPin(){
+  const hash=await sha256(pinBuffer);
+  if(hash===cfg.pin){
+    unlock();
+  } else {
+    for(let i=0;i<6;i++)document.getElementById('d'+i).classList.add('error');
+    setTimeout(()=>{
+      pinBuffer='';
+      updatePinDots();
+    },700);
+  }
+}
+
+// ── Biometría (WebAuthn / Face ID) ────────────────────
+async function tryBiometric(){
+  const msg=document.getElementById('lock-msg');
+  if(!window.PublicKeyCredential){
+    msg.textContent='Biometría no disponible en este dispositivo';
+    return;
+  }
+  try{
+    const available=await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    if(!available){msg.textContent='Face ID / Huella no disponible en este dispositivo';return;}
+
+    if(cfg.bioCredId){
+      // Verificar credencial existente
+      const credIdBytes=Uint8Array.from(atob(cfg.bioCredId),c=>c.charCodeAt(0));
+      const challenge=crypto.getRandomValues(new Uint8Array(32));
+      const cred=await navigator.credentials.get({
+        publicKey:{challenge,allowCredentials:[{id:credIdBytes,type:'public-key'}],userVerification:'required',timeout:30000}
+      });
+      if(cred)unlock();
+    } else {
+      // Primera vez: registrar biometría y desbloquear
+      msg.textContent='Registrando Face ID / Huella…';
+      const credId=await registerBiometric();
+      if(credId){
+        cfg.bioCredId=credId;
+        save(K.CFG,cfg);
+        unlock();
+      } else {
+        msg.textContent='No se pudo activar — usa tu PIN';
+      }
+    }
+  }catch(e){
+    if(e.name==='SecurityError')msg.textContent='Requiere HTTPS para activar biometría — usa tu PIN';
+    else if(e.name==='NotAllowedError')msg.textContent='Cancelado — usa tu PIN';
+    else msg.textContent='Error de biometría — usa tu PIN';
+  }
+}
+
+async function registerBiometric(){
+  if(!window.PublicKeyCredential)return null;
+  try{
+    const challenge=crypto.getRandomValues(new Uint8Array(32));
+    const userId=crypto.getRandomValues(new Uint8Array(16));
+    const cred=await navigator.credentials.create({publicKey:{
+      challenge,rp:{name:'Mis Finanzas'},
+      user:{id:userId,name:'usuario',displayName:'Usuario'},
+      pubKeyCredParams:[{alg:-7,type:'public-key'},{alg:-257,type:'public-key'}],
+      authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required'},
+      timeout:30000,attestation:'none'
+    }});
+    if(cred){
+      const raw=new Uint8Array(cred.rawId);
+      return btoa(String.fromCharCode(...raw));
+    }
+  }catch(e){}
+  return null;
+}
+
+// ── Configurar PIN ─────────────────────────────────────
+function openPinSetup(mode){
+  setupBuffer='';
+  setupFirst='';
+  setupStep='first';
+  document.getElementById('pin-setup-title').textContent=mode==='change'?'Cambiar PIN':'Crear PIN';
+  document.getElementById('pin-setup-msg').textContent='Elige un PIN de 6 dígitos para proteger la app.';
+  updateSetupDots();
+  document.getElementById('sheet-pin-setup').classList.add('open');
+}
+
+function updateSetupDots(){
+  for(let i=0;i<6;i++){
+    const d=document.getElementById('sd'+i);
+    d.style.background=i<setupBuffer.length?'#000':'transparent';
+    d.style.borderColor=i<setupBuffer.length?'#000':'#ccc';
+  }
+}
+
+function setupTap(n){
+  if(setupBuffer.length>=6)return;
+  setupBuffer+=n;
+  updateSetupDots();
+  if(setupBuffer.length===6){
+    if(setupStep==='first'){
+      setupFirst=setupBuffer;
+      setupBuffer='';
+      setupStep='confirm';
+      document.getElementById('pin-setup-msg').textContent='Confirma tu PIN.';
+      updateSetupDots();
+    } else {
+      if(setupBuffer===setupFirst){
+        confirmPinSetup();
+      } else {
+        document.getElementById('pin-setup-msg').textContent='Los PINs no coinciden. Intenta de nuevo.';
+        setupBuffer='';setupFirst='';setupStep='first';
+        updateSetupDots();
+      }
+    }
+  }
+}
+
+function setupDelete(){
+  setupBuffer=setupBuffer.slice(0,-1);
+  updateSetupDots();
+}
+
+async function confirmPinSetup(){
+  try{
+    cfg.pin=await sha256(setupFirst);
+    const credId=await registerBiometric();
+    if(credId){cfg.bioCredId=credId;}
+    save(K.CFG,cfg);
+    document.getElementById('sheet-pin-setup').classList.remove('open');
+    document.getElementById('change-pin-row').style.display='flex';
+  }catch(e){
+    alert('Error al guardar PIN. Intenta de nuevo.');
+    setupBuffer='';setupFirst='';setupStep='first';
+    updateSetupDots();
+  }
+}
+
+function toggleLock(enabled){
+  if(enabled){
+    openPinSetup('create');
+    // Si cancela el setup, desactivar el toggle
+    document.getElementById('sheet-pin-setup').addEventListener('transitionend',()=>{
+      if(!cfg.pin)document.getElementById('cfg-lock').checked=false;
+    },{once:true});
+  } else {
+    cfg.pin=null;
+    cfg.bioCredId=null;
+    save(K.CFG,cfg);
+    document.getElementById('change-pin-row').style.display='none';
+  }
+}
+
+// Auto-bloquear al volver al app desde background
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){
+    hiddenAt=Date.now();
+  } else {
+    if(cfg.pin && hiddenAt && Date.now()-hiddenAt>15000){
+      pinBuffer='';
+      updatePinDots();
+      document.getElementById('lock-msg').textContent='Ingresa tu PIN para continuar';
+      document.getElementById('lock-msg').textContent='Ingresa tu PIN para continuar';
+      document.getElementById('lock-screen').classList.remove('hidden');
+      if(cfg.bioCredId)setTimeout(tryBiometric,400);
+    }
+    hiddenAt=null;
+  }
+});
+
+// Mostrar estado de seguridad en settings
+const _openSettings=openSettings;
+openSettings=function(){
+  _openSettings();
+  document.getElementById('cfg-budget').value=cfg.dailyBudget||'';
+  document.getElementById('cfg-lock').checked=!!cfg.pin;
+  document.getElementById('change-pin-row').style.display=cfg.pin?'flex':'none';
+};
+
+// ── RECUPERACIÓN CROSS-ORIGIN ──────────────────────────
+// Si la página se carga dentro de un iframe con ?recover=1,
+// envía el localStorage al parent y termina (no renderiza UI).
+(function(){
+  try{
+    if(window.parent!==window && new URLSearchParams(location.search).get('recover')==='1'){
+      const payload={
+        type:'mf-recovery',
+        tx:localStorage.getItem('mf_tx'),
+        rec:localStorage.getItem('mf_rec'),
+        cfg:localStorage.getItem('mf_cfg'),
+        origin:location.origin
+      };
+      // Reintentar varias veces por si el listener del parent aún no está listo
+      let n=0;
+      const send=()=>{window.parent.postMessage(payload,'*');if(++n<5)setTimeout(send,200)};
+      send();
+    }
+  }catch(e){}
+})();
+
+function openRecoverDialog(){
+  const input=prompt('IP/URL del origen viejo donde tenías tus datos:\n\nEjemplo: http://192.168.1.41:8080');
+  if(!input)return;
+  let url=input.trim();
+  if(!/^https?:\/\//i.test(url))url='http://'+url;
+  url=url.replace(/\/+$/,'');
+  const target=url+'/index.html?recover=1';
+
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;color:#fff;font-family:inherit;flex-direction:column;gap:14px;padding:20px;text-align:center';
+  overlay.innerHTML='<div style="font-size:17px;font-weight:600">Conectando con</div><div style="font-size:14px;opacity:.8;word-break:break-all">'+url+'</div><div style="font-size:13px;opacity:.6;margin-top:8px">Esto puede tardar unos segundos…</div>';
+  document.body.appendChild(overlay);
+
+  const iframe=document.createElement('iframe');
+  iframe.style.cssText='position:absolute;width:1px;height:1px;border:0;opacity:0;pointer-events:none';
+  iframe.src=target;
+  document.body.appendChild(iframe);
+
+  let done=false;
+  const cleanup=()=>{
+    try{document.body.removeChild(iframe)}catch{}
+    try{document.body.removeChild(overlay)}catch{}
+    window.removeEventListener('message',listener);
+  };
+  const listener=(ev)=>{
+    if(!ev.data||ev.data.type!=='mf-recovery')return;
+    if(done)return;
+    done=true;
+    cleanup();
+    const d=ev.data;
+    const txCount=d.tx?(JSON.parse(d.tx)||[]).length:0;
+    const recCount=d.rec?(JSON.parse(d.rec)||[]).length:0;
+    const banksCount=d.cfg?((JSON.parse(d.cfg)||{}).banks||[]).length:0;
+    if(!d.tx&&!d.rec&&!d.cfg){
+      alert('Se conectó con '+d.origin+', pero no había datos guardados allí.');
+      return;
+    }
+    if(!confirm(`Datos encontrados en ${d.origin}:\n\n• ${txCount} movimientos\n• ${recCount} recurrentes\n• ${banksCount} bancos\n\nEsto REEMPLAZARÁ tus datos actuales. ¿Continuar?`))return;
+    if(d.tx)localStorage.setItem('mf_tx',d.tx);
+    if(d.rec)localStorage.setItem('mf_rec',d.rec);
+    if(d.cfg)localStorage.setItem('mf_cfg',d.cfg);
+    alert('Datos recuperados. Se recargará la app.');
+    location.reload();
+  };
+  window.addEventListener('message',listener);
+
+  setTimeout(()=>{
+    if(!done){
+      cleanup();
+      alert('No se pudo conectar con '+url+'.\n\nPosibles causas:\n• El servidor (Mac) no está corriendo en esa IP\n• La IP es incorrecta\n• La versión cacheada en esa IP es muy antigua y no tiene el módulo de recuperación\n\nSolución alterna: pon la Mac en la IP vieja, abre esa URL en Safari, exporta a Excel, y luego importa aquí.');
+    }
+  },15000);
+}
+
+// ── EXPORT / IMPORT EXCEL ──────────────────────────────
+let xlsxLoaded=false;
+async function loadXLSX(){
+  if(xlsxLoaded&&window.XLSX)return;
+  await new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload=res;s.onerror=()=>rej(new Error('No se pudo cargar la librería de Excel. Verifica tu conexión.'));
+    document.head.appendChild(s);
+  });
+  xlsxLoaded=true;
+}
+async function exportToExcel(){
+  try{
+    await loadXLSX();
+    const wb=XLSX.utils.book_new();
+    const txData=txs.map(t=>({
+      id:t.id,tipo:t.type,monto:t.amount,
+      categoria:t.category||'',descripcion:t.description||'',fecha:t.date,
+      bancoId:t.bankId||'',banco:t.bankId?bankNameById(t.bankId):'',
+      bancoOrigenId:t.fromBankId||'',bancoOrigen:t.fromBankId?bankNameById(t.fromBankId):'',
+      bancoDestinoId:t.toBankId||'',bancoDestino:t.toBankId?bankNameById(t.toBankId):'',
+      pagadoConTC:t.usedCC?'sí':'',recurrenteId:t.recurringId||'',creadoEn:t.createdAt||''
+    }));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(txData),'Movimientos');
+    const recData=recs.map(r=>({
+      id:r.id,tipo:r.type,descripcion:r.description,monto:r.amount,
+      categoria:r.category,diaDelMes:r.dayOfMonth,
+      activo:r.active===false?'no':'sí',
+      mesesPagados:r.paidMonths?Object.entries(r.paidMonths).map(([k,v])=>k+':'+v).join(','):''
+    }));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(recData),'Recurrentes');
+    const banks=(cfg.banks||[]).map(b=>({
+      id:b.id,nombre:b.name,saldo:b.balance||0,color:b.color||'',
+      porcentaje:b.distPct||0,proposito:b.purpose||'',
+      metaTC:b.ccGoal||'none',limiteTC:b.ccLimit||0,usadoTC:b.ccUsed||0
+    }));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(banks),'Bancos');
+    const cfgRows=[
+      {clave:'balance',valor:cfg.balance||0},
+      {clave:'currency',valor:cfg.currency||'MXN'},
+      {clave:'dailyBudget',valor:cfg.dailyBudget||0},
+      {clave:'weekBudgets',valor:JSON.stringify(cfg.weekBudgets||{})},
+      {clave:'budgetOverrides',valor:JSON.stringify(cfg.budgetOverrides||{})}
+    ];
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(cfgRows),'Configuracion');
+    XLSX.writeFile(wb,`mis-finanzas-${todayStr()}.xlsx`);
+  }catch(e){
+    alert('Error al exportar: '+(e.message||e));
+  }
+}
+function excelDateToISO(v){
+  if(v==null||v==='')return '';
+  if(typeof v==='number'){
+    const d=new Date(Math.round((v-25569)*86400000));
+    return d.toISOString().split('T')[0];
+  }
+  const s=String(v).trim();
+  if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.slice(0,10);
+  const d=new Date(s);
+  if(!isNaN(d))return d.toISOString().split('T')[0];
+  return s;
+}
+async function importFromExcel(file){
+  if(!file)return;
+  try{
+    await loadXLSX();
+    const buf=await file.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array'});
+    if(!confirm('Esto reemplazará TODOS tus datos actuales (movimientos, recurrentes, bancos y configuración). ¿Continuar?'))return;
+    const movSheet=wb.Sheets['Movimientos'];
+    const recSheet=wb.Sheets['Recurrentes'];
+    const banksSheet=wb.Sheets['Bancos'];
+    const cfgSheet=wb.Sheets['Configuracion'];
+    const newTxs=[];
+    if(movSheet){
+      XLSX.utils.sheet_to_json(movSheet).forEach(r=>{
+        const tipo=String(r.tipo||'').trim();
+        if(!tipo)return;
+        newTxs.push({
+          id:String(r.id||uid()),
+          type:tipo,
+          amount:parseFloat(r.monto)||0,
+          category:r.categoria?String(r.categoria):'',
+          description:r.descripcion?String(r.descripcion):'',
+          date:excelDateToISO(r.fecha),
+          bankId:r.bancoId?String(r.bancoId):null,
+          fromBankId:r.bancoOrigenId?String(r.bancoOrigenId):undefined,
+          toBankId:r.bancoDestinoId?String(r.bancoDestinoId):undefined,
+          usedCC:r.pagadoConTC==='sí'||r.pagadoConTC===true||r.pagadoConTC==='si',
+          recurringId:r.recurrenteId?String(r.recurrenteId):undefined,
+          createdAt:r.creadoEn?String(r.creadoEn):new Date().toISOString()
+        });
+      });
+    }
+    const newRecs=[];
+    if(recSheet){
+      XLSX.utils.sheet_to_json(recSheet).forEach(r=>{
+        if(!r.tipo||!r.descripcion)return;
+        const paid={};
+        if(r.mesesPagados)String(r.mesesPagados).split(',').forEach(p=>{const[k,v]=p.split(':');if(k)paid[k.trim()]=v?v.trim():''});
+        newRecs.push({
+          id:String(r.id||uid()),
+          type:String(r.tipo),
+          description:String(r.descripcion),
+          amount:parseFloat(r.monto)||0,
+          category:r.categoria?String(r.categoria):'Otro',
+          dayOfMonth:parseInt(r.diaDelMes)||1,
+          active:r.activo!=='no',
+          paidMonths:paid
+        });
+      });
+    }
+    const newBanks=[];
+    if(banksSheet){
+      XLSX.utils.sheet_to_json(banksSheet).forEach(b=>{
+        if(!b.nombre)return;
+        newBanks.push({
+          id:String(b.id||uid()),
+          name:String(b.nombre),
+          balance:parseFloat(b.saldo)||0,
+          color:b.color?String(b.color):'#636366',
+          distPct:parseFloat(b.porcentaje)||0,
+          purpose:b.proposito?String(b.proposito):'',
+          ccGoal:b.metaTC?String(b.metaTC):'none',
+          ccLimit:parseFloat(b.limiteTC)||0,
+          ccUsed:parseFloat(b.usadoTC)||0
+        });
+      });
+    }
+    const newCfg={...cfg};
+    delete newCfg.banks;
+    if(cfgSheet){
+      XLSX.utils.sheet_to_json(cfgSheet).forEach(r=>{
+        const k=r.clave,v=r.valor;
+        if(!k)return;
+        if(k==='balance'||k==='dailyBudget')newCfg[k]=parseFloat(v)||0;
+        else if(k==='currency')newCfg[k]=String(v||'MXN');
+        else if(k==='weekBudgets'||k==='budgetOverrides'){
+          try{newCfg[k]=v?JSON.parse(v):{}}catch{newCfg[k]={}}
+        }
+      });
+    }
+    txs=newTxs;
+    recs=newRecs;
+    cfg={...newCfg,banks:newBanks};
+    save(K.TX,txs);save(K.REC,recs);save(K.CFG,cfg);
+    alert(`Importado: ${txs.length} movimientos, ${recs.length} recurrentes, ${newBanks.length} bancos.`);
+    renderView(currentView);
+  }catch(e){
+    alert('Error al importar: '+(e.message||e));
+  }
+}
+
+// ── SERVICE WORKER ─────────────────────────────────────
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+// ── INIT ───────────────────────────────────────────────
+renderHome();
+checkLock();
+</script>
+</body>
+</html>
