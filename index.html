@@ -1429,11 +1429,12 @@ function saveBankSheet(){
   const name=nameVal==='Otro'?document.getElementById('bank-custom-name').value.trim():nameVal;
   if(!name){alert('Ingresa el nombre del banco');return;}
   const ccGoal=document.getElementById('bank-cc-goal').value;
+  const newBalance=parseFloat(document.getElementById('bank-balance').value)||0;
   const bank={
     id:editId||uid(),
     name,
     color:BANK_COLORS[nameVal]||BANK_COLORS.Otro,
-    balance:parseFloat(document.getElementById('bank-balance').value)||0,
+    balance:newBalance,
     distPct:parseFloat(document.getElementById('bank-pct').value)||0,
     purpose:document.getElementById('bank-purpose').value.trim(),
     ccGoal,
@@ -1441,16 +1442,30 @@ function saveBankSheet(){
     ccUsed:parseFloat(document.getElementById('bank-cc-used').value)||0
   };
   if(!cfg.banks)cfg.banks=[];
-  if(editId){const i=cfg.banks.findIndex(b=>b.id===editId);if(i>=0)cfg.banks[i]=bank;}
-  else cfg.banks.push(bank);
+  if(editId){
+    const i=cfg.banks.findIndex(b=>b.id===editId);
+    if(i>=0){
+      // Si cambió el saldo manualmente, ajustar el balance global por la diferencia
+      const oldBalance=cfg.banks[i].balance||0;
+      const delta=newBalance-oldBalance;
+      if(delta!==0)cfg.balance=(cfg.balance||0)+delta;
+      cfg.banks[i]=bank;
+    }
+  } else {
+    // Nuevo banco: el saldo inicial cuenta como dinero descubierto/agregado
+    if(newBalance!==0)cfg.balance=(cfg.balance||0)+newBalance;
+    cfg.banks.push(bank);
+  }
   save(K.CFG,cfg);
   closeSheet('bank');
   renderBanks();
 }
 function deleteBank(){
   const id=document.getElementById('bank-edit-id').value;
-  if(!confirm('¿Eliminar este banco?'))return;
-  cfg.banks=cfg.banks.filter(b=>b.id!==id);
+  if(!confirm('¿Eliminar este banco? El saldo se restará del balance global.'))return;
+  const b=(cfg.banks||[]).find(x=>x.id===id);
+  if(b)cfg.balance=(cfg.balance||0)-(b.balance||0);
+  cfg.banks=cfg.banks.filter(x=>x.id!==id);
   save(K.CFG,cfg);
   closeSheet('bank');
   renderBanks();
